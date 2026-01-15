@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, IndianRupee, AlertCircle } from 'lucide-react';
+import { X, IndianRupee, AlertCircle, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useToast } from '@/hooks/use-toast';
 import { TransactionType } from '@/types/finance';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -18,7 +22,10 @@ interface TransactionModalProps {
 const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
-  const { currentUser, addTransaction } = useFinance();
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [debitFrom, setDebitFrom] = useState('');
+  const [debitTo, setDebitTo] = useState('');
+  const { currentUser, addTransaction, getNextSiNumber } = useFinance();
   const { toast } = useToast();
 
   const getTypeColor = () => {
@@ -60,7 +67,30 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
       return;
     }
 
-    const success = addTransaction(type, amountNum, reason.trim());
+    if (!date) {
+      toast({
+        title: 'Date required',
+        description: 'Please select a date for this transaction',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (type === 'debit' && (!debitFrom.trim() || !debitTo.trim())) {
+      toast({
+        title: 'Debit details required',
+        description: 'Please provide both "Debit From" and "Debit To" information',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const debitDetails = type === 'debit' ? {
+      debitFrom: debitFrom.trim(),
+      debitTo: debitTo.trim(),
+    } : undefined;
+
+    const success = addTransaction(type, amountNum, reason.trim(), date.toISOString(), debitDetails);
     
     if (success) {
       toast({
@@ -69,6 +99,9 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
       });
       setAmount('');
       setReason('');
+      setDate(new Date());
+      setDebitFrom('');
+      setDebitTo('');
       onClose();
     } else {
       toast({
@@ -105,7 +138,10 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
             {/* Header */}
             <div className={`${getTypeColor()} text-primary-foreground p-4 rounded-t-3xl`}>
               <div className="flex items-center justify-between">
-                <h2 className="font-heading font-bold text-xl">{getTypeLabel()}</h2>
+                <div>
+                  <h2 className="font-heading font-bold text-xl">{getTypeLabel()}</h2>
+                  <p className="text-sm opacity-90 mt-0.5">SI No: #{getNextSiNumber()}</p>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -124,6 +160,37 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {/* Date Picker */}
+              <div>
+                <Label className="text-foreground font-medium">
+                  Transaction Date
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-12 mt-2 justify-start text-left font-normal bg-muted border-input",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "dd MMM yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Amount */}
               <div>
                 <Label htmlFor="amount" className="text-foreground font-medium">
                   Amount
@@ -155,6 +222,37 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
                 )}
               </div>
 
+              {/* Debit From/To fields */}
+              {type === 'debit' && (
+                <>
+                  <div>
+                    <Label htmlFor="debitFrom" className="text-foreground font-medium">
+                      Debit From (Source)
+                    </Label>
+                    <Input
+                      id="debitFrom"
+                      value={debitFrom}
+                      onChange={(e) => setDebitFrom(e.target.value)}
+                      placeholder="e.g., Savings Account, Cash, etc."
+                      className="mt-2 h-12 bg-muted border-input"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="debitTo" className="text-foreground font-medium">
+                      Debit To (Recipient)
+                    </Label>
+                    <Input
+                      id="debitTo"
+                      value={debitTo}
+                      onChange={(e) => setDebitTo(e.target.value)}
+                      placeholder="e.g., Person name, Company, etc."
+                      className="mt-2 h-12 bg-muted border-input"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Reason */}
               <div>
                 <Label htmlFor="reason" className="text-foreground font-medium">
                   Reason / Description

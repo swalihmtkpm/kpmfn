@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Transaction, TransactionType } from '@/types/finance';
 
+interface DebitDetails {
+  debitFrom: string;
+  debitTo: string;
+}
+
 interface FinanceContextType {
   currentUser: User | null;
   users: User[];
@@ -8,13 +13,16 @@ interface FinanceContextType {
   isDarkMode: boolean;
   login: (username: string, password: string) => boolean;
   logout: () => void;
-  addTransaction: (type: TransactionType, amount: number, reason: string) => boolean;
+  addTransaction: (type: TransactionType, amount: number, reason: string, date: string, debitDetails?: DebitDetails) => boolean;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
   toggleDarkMode: () => void;
   switchUser: (userId: string) => boolean;
   addUser: (username: string, password: string) => boolean;
   getUserTransactions: () => Transaction[];
   hasTransactions: () => boolean;
+  markDebitCompleted: (transactionId: string) => void;
+  getNextSiNumber: () => number;
+  exportTransactions: (fromSi: number, toSi: number) => Transaction[];
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -107,7 +115,21 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.removeItem('koppamee_current_user');
   };
 
-  const addTransaction = (type: TransactionType, amount: number, reason: string): boolean => {
+  const getNextSiNumber = (): number => {
+    if (!currentUser) return 1;
+    const userTransactions = transactions.filter(t => t.userId === currentUser.id);
+    if (userTransactions.length === 0) return 1;
+    const maxSi = Math.max(...userTransactions.map(t => t.siNumber || 0));
+    return maxSi + 1;
+  };
+
+  const addTransaction = (
+    type: TransactionType, 
+    amount: number, 
+    reason: string, 
+    date: string,
+    debitDetails?: DebitDetails
+  ): boolean => {
     if (!currentUser) return false;
 
     if (type === 'withdraw' || type === 'debit') {
@@ -118,11 +140,17 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const newTransaction: Transaction = {
       id: `txn_${Date.now()}`,
+      siNumber: getNextSiNumber(),
       type,
       amount,
       reason,
-      date: new Date().toISOString(),
+      date,
       userId: currentUser.id,
+      ...(type === 'debit' && debitDetails && {
+        debitFrom: debitDetails.debitFrom,
+        debitTo: debitDetails.debitTo,
+        isDebitCompleted: false,
+      }),
     };
 
     const newBalance = type === 'deposit' 
@@ -137,6 +165,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setTransactions(prev => [newTransaction, ...prev]);
 
     return true;
+  };
+
+  const markDebitCompleted = (transactionId: string) => {
+    setTransactions(prev =>
+      prev.map(t => 
+        t.id === transactionId ? { ...t, isDebitCompleted: true } : t
+      )
+    );
   };
 
   const changePassword = (oldPassword: string, newPassword: string): boolean => {
@@ -189,6 +225,13 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     return transactions.some(t => t.userId === currentUser.id);
   };
 
+  const exportTransactions = (fromSi: number, toSi: number): Transaction[] => {
+    if (!currentUser) return [];
+    return transactions
+      .filter(t => t.userId === currentUser.id && t.siNumber >= fromSi && t.siNumber <= toSi)
+      .sort((a, b) => a.siNumber - b.siNumber);
+  };
+
   return (
     <FinanceContext.Provider
       value={{
@@ -205,6 +248,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         addUser,
         getUserTransactions,
         hasTransactions,
+        markDebitCompleted,
+        getNextSiNumber,
+        exportTransactions,
       }}
     >
       {children}
