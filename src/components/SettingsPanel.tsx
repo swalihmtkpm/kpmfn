@@ -9,7 +9,8 @@ import {
   Users, 
   ChevronRight,
   UserPlus,
-  Check
+  Check,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useToast } from '@/hooks/use-toast';
 import TransactionList from './TransactionList';
+import ExportModal from './ExportModal';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const { 
     isDarkMode, 
@@ -314,6 +317,17 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
             </button>
 
             <button
+              onClick={() => setShowExportModal(true)}
+              className="w-full flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet size={20} />
+                <span className="font-medium">Export to Excel</span>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground" />
+            </button>
+
+            <button
               onClick={() => setView('users')}
               className="w-full flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
             >
@@ -329,49 +343,53 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-foreground/50 z-50"
-          />
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-foreground/50 z-50"
+            />
 
-          {/* Panel */}
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-card-lg overflow-auto"
-          >
-            {/* Header */}
-            <div className="gradient-primary text-primary-foreground p-4 flex items-center justify-between">
-              <h2 className="font-heading font-bold text-xl">Settings</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="text-primary-foreground hover:bg-primary-foreground/20"
-              >
-                <X size={24} />
-              </Button>
-            </div>
+            {/* Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-card-lg overflow-auto"
+            >
+              {/* Header */}
+              <div className="gradient-primary text-primary-foreground p-4 flex items-center justify-between">
+                <h2 className="font-heading font-bold text-xl">Settings</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="text-primary-foreground hover:bg-primary-foreground/20"
+                >
+                  <X size={24} />
+                </Button>
+              </div>
 
-            {/* Content */}
-            <div className="p-4">
-              <AnimatePresence mode="wait">
-                {renderContent()}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              {/* Content */}
+              <div className="p-4">
+                <AnimatePresence mode="wait">
+                  {renderContent()}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
+    </>
   );
 };
 

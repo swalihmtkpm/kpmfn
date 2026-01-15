@@ -2,11 +2,16 @@ export type TransactionType = 'deposit' | 'withdraw' | 'debit';
 
 export interface Transaction {
   id: string;
+  siNumber: number;
   type: TransactionType;
   amount: number;
   reason: string;
   date: string;
   userId: string;
+  // Debit specific fields
+  debitFrom?: string;
+  debitTo?: string;
+  isDebitCompleted?: boolean;
 }
 
 export interface User {
