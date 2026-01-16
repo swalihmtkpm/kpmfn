@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -20,6 +20,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useToast } from '@/hooks/use-toast';
 import TransactionList from './TransactionList';
 import ExportModal from './ExportModal';
+import TransactionFiltersComponent, { TransactionFilters } from './TransactionFilters';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
   const [newUsername, setNewUsername] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [filters, setFilters] = useState<TransactionFilters>({ type: 'all' });
   
   const { 
     isDarkMode, 
@@ -184,6 +186,39 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
         );
 
       case 'history':
+        const allTransactions = getUserTransactions();
+        
+        // Apply filters
+        const filteredTransactions = allTransactions.filter(transaction => {
+          // Type filter
+          if (filters.type && filters.type !== 'all' && transaction.type !== filters.type) {
+            return false;
+          }
+          
+          // Date range filter
+          const transactionDate = new Date(transaction.date);
+          if (filters.dateFrom && transactionDate < filters.dateFrom) {
+            return false;
+          }
+          if (filters.dateTo) {
+            const endOfDay = new Date(filters.dateTo);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (transactionDate > endOfDay) {
+              return false;
+            }
+          }
+          
+          // Amount range filter
+          if (filters.minAmount !== undefined && transaction.amount < filters.minAmount) {
+            return false;
+          }
+          if (filters.maxAmount !== undefined && transaction.amount > filters.maxAmount) {
+            return false;
+          }
+          
+          return true;
+        });
+        
         return (
           <motion.div
             initial={{ opacity: 0, x: 50 }}
@@ -197,7 +232,13 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
               <h3 className="font-heading font-semibold text-lg">Transaction History</h3>
             </div>
 
-            <TransactionList transactions={getUserTransactions()} />
+            <TransactionFiltersComponent filters={filters} onFiltersChange={setFilters} />
+            
+            <div className="text-sm text-muted-foreground mb-3">
+              Showing {filteredTransactions.length} of {allTransactions.length} transactions
+            </div>
+
+            <TransactionList transactions={filteredTransactions} />
           </motion.div>
         );
 
