@@ -4,6 +4,7 @@ import { User, Transaction, TransactionType } from '@/types/finance';
 interface DebitDetails {
   debitFrom: string;
   debitTo: string;
+  debitReturnDate?: string;
 }
 
 interface FinanceContextType {
@@ -14,6 +15,7 @@ interface FinanceContextType {
   login: (username: string, password: string) => boolean;
   logout: () => void;
   addTransaction: (type: TransactionType, amount: number, reason: string, date: string, debitDetails?: DebitDetails) => boolean;
+  deleteTransaction: (transactionId: string) => void;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
   toggleDarkMode: () => void;
   switchUser: (userId: string) => boolean;
@@ -150,6 +152,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         debitFrom: debitDetails.debitFrom,
         debitTo: debitDetails.debitTo,
         isDebitCompleted: false,
+        debitReturnDate: debitDetails.debitReturnDate,
       }),
     };
 
@@ -173,6 +176,31 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         t.id === transactionId ? { ...t, isDebitCompleted: true } : t
       )
     );
+  };
+
+  const deleteTransaction = (transactionId: string) => {
+    if (!currentUser) return;
+
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction || transaction.userId !== currentUser.id) return;
+
+    // Adjust balance based on transaction type
+    let newBalance = currentUser.balance;
+    if (transaction.type === 'deposit') {
+      newBalance -= transaction.amount;
+    } else {
+      newBalance += transaction.amount;
+    }
+
+    // Update user balance
+    const updatedUser = { ...currentUser, balance: newBalance };
+    setCurrentUser(updatedUser);
+    setUsers(prevUsers =>
+      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
+    );
+
+    // Remove transaction
+    setTransactions(prev => prev.filter(t => t.id !== transactionId));
   };
 
   const changePassword = (oldPassword: string, newPassword: string): boolean => {
@@ -242,6 +270,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         login,
         logout,
         addTransaction,
+        deleteTransaction,
         changePassword,
         toggleDarkMode,
         switchUser,
