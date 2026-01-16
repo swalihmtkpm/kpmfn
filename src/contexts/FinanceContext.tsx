@@ -68,7 +68,41 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
+      const parsedTransactions: Transaction[] = JSON.parse(savedTransactions);
+      
+      // Migrate existing transactions without SI numbers
+      let needsMigration = parsedTransactions.some(t => !t.siNumber);
+      if (needsMigration) {
+        // Group transactions by userId and assign SI numbers
+        const userTransactionCounters: { [userId: string]: number } = {};
+        
+        // Sort by date to assign SI numbers in chronological order
+        const sortedTransactions = [...parsedTransactions].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        
+        const migratedTransactions = sortedTransactions.map(t => {
+          if (!t.siNumber) {
+            if (!userTransactionCounters[t.userId]) {
+              // Find max existing SI for this user
+              const existingSiNumbers = parsedTransactions
+                .filter(tr => tr.userId === t.userId && tr.siNumber)
+                .map(tr => tr.siNumber);
+              userTransactionCounters[t.userId] = existingSiNumbers.length > 0 
+                ? Math.max(...existingSiNumbers) 
+                : 0;
+            }
+            userTransactionCounters[t.userId]++;
+            return { ...t, siNumber: userTransactionCounters[t.userId] };
+          }
+          return t;
+        });
+        
+        setTransactions(migratedTransactions);
+        localStorage.setItem('koppamee_transactions', JSON.stringify(migratedTransactions));
+      } else {
+        setTransactions(parsedTransactions);
+      }
     }
 
     if (savedDarkMode) {
