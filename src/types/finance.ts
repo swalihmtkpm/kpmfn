@@ -12,6 +12,7 @@ export interface Transaction {
   debitFrom?: string;
   debitTo?: string;
   isDebitCompleted?: boolean;
+  debitReturnDate?: string;
 }
 
 export interface User {

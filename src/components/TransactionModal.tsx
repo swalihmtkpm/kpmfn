@@ -25,6 +25,7 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [debitFrom, setDebitFrom] = useState('');
   const [debitTo, setDebitTo] = useState('');
+  const [debitReturnDate, setDebitReturnDate] = useState<Date | undefined>();
   const { currentUser, addTransaction, getNextSiNumber } = useFinance();
   const { toast } = useToast();
 
@@ -88,6 +89,7 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
     const debitDetails = type === 'debit' ? {
       debitFrom: debitFrom.trim(),
       debitTo: debitTo.trim(),
+      debitReturnDate: debitReturnDate?.toISOString(),
     } : undefined;
 
     const success = addTransaction(type, amountNum, reason.trim(), date.toISOString(), debitDetails);
@@ -102,6 +104,7 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
       setDate(new Date());
       setDebitFrom('');
       setDebitTo('');
+      setDebitReturnDate(undefined);
       onClose();
     } else {
       toast({
@@ -248,6 +251,34 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
                       placeholder="e.g., Person name, Company, etc."
                       className="mt-2 h-12 bg-muted border-input"
                     />
+                  </div>
+                  <div>
+                    <Label className="text-foreground font-medium">
+                      Expected Return Date (Optional)
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full h-12 mt-2 justify-start text-left font-normal bg-muted border-input",
+                            !debitReturnDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {debitReturnDate ? format(debitReturnDate, "dd MMM yyyy") : <span>Pick return date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={debitReturnDate}
+                          onSelect={setDebitReturnDate}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </>
               )}

@@ -1,18 +1,30 @@
 import { motion } from 'framer-motion';
-import { Plus, Minus, CreditCard, IndianRupee, Check, Circle } from 'lucide-react';
+import { Plus, Minus, CreditCard, IndianRupee, Check, Circle, Trash2, CalendarClock } from 'lucide-react';
 import { Transaction } from '@/types/finance';
 import { format } from 'date-fns';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface TransactionListProps {
   transactions: Transaction[];
   showDebitComplete?: boolean;
+  showDelete?: boolean;
 }
 
-const TransactionList = ({ transactions, showDebitComplete = true }: TransactionListProps) => {
-  const { markDebitCompleted } = useFinance();
+const TransactionList = ({ transactions, showDebitComplete = true, showDelete = true }: TransactionListProps) => {
+  const { markDebitCompleted, deleteTransaction } = useFinance();
   const { toast } = useToast();
 
   const getTransactionIcon = (type: string) => {
@@ -51,6 +63,14 @@ const TransactionList = ({ transactions, showDebitComplete = true }: Transaction
     toast({
       title: 'Debit marked as completed',
       description: 'The debit transaction has been marked as received.',
+    });
+  };
+
+  const handleDelete = (transactionId: string, type: string, amount: number) => {
+    deleteTransaction(transactionId);
+    toast({
+      title: 'Transaction deleted',
+      description: `₹${amount.toLocaleString('en-IN')} ${type === 'deposit' ? 'removed from' : 'restored to'} your balance`,
     });
   };
 
@@ -104,6 +124,12 @@ const TransactionList = ({ transactions, showDebitComplete = true }: Transaction
                   {transaction.debitTo && (
                     <p><span className="font-medium">To:</span> {transaction.debitTo}</p>
                   )}
+                  {transaction.debitReturnDate && (
+                    <p className="flex items-center gap-1 text-warning">
+                      <CalendarClock size={12} />
+                      <span className="font-medium">Return by:</span> {format(new Date(transaction.debitReturnDate), 'dd MMM yyyy')}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -130,12 +156,48 @@ const TransactionList = ({ transactions, showDebitComplete = true }: Transaction
               )}
             </div>
 
-            <div className={`flex items-center font-semibold ${getAmountColor(transaction.type)} shrink-0`}>
-              <span className="text-sm mr-0.5">
-                {transaction.type === 'deposit' ? '+' : '-'}
-              </span>
-              <IndianRupee size={14} />
-              <span>{transaction.amount.toLocaleString('en-IN')}</span>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className={`flex items-center font-semibold ${getAmountColor(transaction.type)}`}>
+                <span className="text-sm mr-0.5">
+                  {transaction.type === 'deposit' ? '+' : '-'}
+                </span>
+                <IndianRupee size={14} />
+                <span>{transaction.amount.toLocaleString('en-IN')}</span>
+              </div>
+
+              {showDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this transaction? This will{' '}
+                        {transaction.type === 'deposit' ? 'remove' : 'restore'}{' '}
+                        ₹{transaction.amount.toLocaleString('en-IN')}{' '}
+                        {transaction.type === 'deposit' ? 'from' : 'to'} your balance.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(transaction.id, transaction.type, transaction.amount)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         </motion.div>
