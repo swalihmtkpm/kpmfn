@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Plus, Minus, CreditCard, IndianRupee, Check, Circle, Trash2, CalendarClock } from 'lucide-react';
+import { Plus, Minus, HandCoins, IndianRupee, CheckCircle2, Circle, Trash2, CalendarClock } from 'lucide-react';
 import { Transaction } from '@/types/finance';
 import { format } from 'date-fns';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -31,7 +31,7 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
     switch (type) {
       case 'deposit': return <Plus size={18} />;
       case 'withdraw': return <Minus size={18} />;
-      case 'debit': return <CreditCard size={18} />;
+      case 'debit': return <HandCoins size={18} />;
     }
   };
 
@@ -58,11 +58,11 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
     }
   };
 
-  const handleMarkComplete = (transactionId: string) => {
+  const handleMarkComplete = (transactionId: string, amount: number) => {
     markDebitCompleted(transactionId);
     toast({
-      title: 'Debit marked as completed',
-      description: 'The debit transaction has been marked as received.',
+      title: 'Dept marked as received',
+      description: `₹${amount.toLocaleString('en-IN')} has been added back to your balance.`,
     });
   };
 
@@ -103,7 +103,7 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
                   #{transaction.siNumber || 'N/A'}
                 </span>
                 <span className="text-xs text-muted-foreground capitalize">
-                  {transaction.type}
+                  {transaction.type === 'debit' ? 'Dept' : transaction.type}
                 </span>
               </div>
               
@@ -115,14 +115,14 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
                 {format(new Date(transaction.date), 'dd MMM yyyy')}
               </p>
 
-              {/* Debit details */}
+              {/* Dept details */}
               {transaction.type === 'debit' && (transaction.debitFrom || transaction.debitTo) && (
                 <div className="mt-2 text-xs text-muted-foreground space-y-1">
                   {transaction.debitFrom && (
-                    <p><span className="font-medium">From:</span> {transaction.debitFrom}</p>
+                    <p><span className="font-medium">Lender:</span> {transaction.debitFrom}</p>
                   )}
                   {transaction.debitTo && (
-                    <p><span className="font-medium">To:</span> {transaction.debitTo}</p>
+                    <p><span className="font-medium">Borrower:</span> {transaction.debitTo}</p>
                   )}
                   {transaction.debitReturnDate && (
                     <p className="flex items-center gap-1 text-warning">
@@ -133,20 +133,20 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
                 </div>
               )}
 
-              {/* Debit completion status/button */}
+              {/* Dept completion status/button */}
               {transaction.type === 'debit' && showDebitComplete && (
                 <div className="mt-2">
                   {transaction.isDebitCompleted ? (
                     <div className="flex items-center gap-1.5 text-success text-xs font-medium">
-                      <Check size={14} />
-                      <span>Payment Received</span>
+                      <CheckCircle2 size={14} />
+                      <span>Dept Received ✓</span>
                     </div>
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleMarkComplete(transaction.id)}
-                      className="h-7 text-xs gap-1.5 border-warning text-warning hover:bg-warning hover:text-warning-foreground"
+                      onClick={() => handleMarkComplete(transaction.id, transaction.amount)}
+                      className="h-7 text-xs gap-1.5 border-success text-success hover:bg-success hover:text-success-foreground"
                     >
                       <Circle size={12} />
                       Mark as Received

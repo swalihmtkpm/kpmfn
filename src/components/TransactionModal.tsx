@@ -41,7 +41,7 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
     switch (type) {
       case 'deposit': return 'Deposit Money';
       case 'withdraw': return 'Withdraw Money';
-      case 'debit': return 'Debit Transaction';
+      case 'debit': return 'Dept Transaction';
     }
   };
 
@@ -79,8 +79,8 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
 
     if (type === 'debit' && (!debitFrom.trim() || !debitTo.trim())) {
       toast({
-        title: 'Debit details required',
-        description: 'Please provide both "Debit From" and "Debit To" information',
+        title: 'Dept details required',
+        description: 'Please provide both "Dept From" and "Dept To" information',
         variant: 'destructive',
       });
       return;
@@ -225,30 +225,30 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
                 )}
               </div>
 
-              {/* Debit From/To fields */}
+              {/* Dept From/To fields */}
               {type === 'debit' && (
                 <>
                   <div>
                     <Label htmlFor="debitFrom" className="text-foreground font-medium">
-                      Debit From (Source)
+                      Dept From (Lender)
                     </Label>
                     <Input
                       id="debitFrom"
                       value={debitFrom}
                       onChange={(e) => setDebitFrom(e.target.value)}
-                      placeholder="e.g., Savings Account, Cash, etc."
+                      placeholder="e.g., Friend, Family, Bank, etc."
                       className="mt-2 h-12 bg-muted border-input"
                     />
                   </div>
                   <div>
                     <Label htmlFor="debitTo" className="text-foreground font-medium">
-                      Debit To (Recipient)
+                      Dept To (Borrower)
                     </Label>
                     <Input
                       id="debitTo"
                       value={debitTo}
                       onChange={(e) => setDebitTo(e.target.value)}
-                      placeholder="e.g., Person name, Company, etc."
+                      placeholder="e.g., Person name, Me, etc."
                       className="mt-2 h-12 bg-muted border-input"
                     />
                   </div>

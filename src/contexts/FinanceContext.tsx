@@ -20,6 +20,7 @@ interface FinanceContextType {
   toggleDarkMode: () => void;
   switchUser: (userId: string) => boolean;
   addUser: (username: string, password: string) => boolean;
+  deleteUser: (userId: string) => boolean;
   getUserTransactions: () => Transaction[];
   hasTransactions: () => boolean;
   markDebitCompleted: (transactionId: string) => void;
@@ -205,6 +206,20 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const markDebitCompleted = (transactionId: string) => {
+    if (!currentUser) return;
+
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction || transaction.type !== 'debit' || transaction.isDebitCompleted) return;
+
+    // Add the dept amount back to balance when marked as received
+    const newBalance = currentUser.balance + transaction.amount;
+    const updatedUser = { ...currentUser, balance: newBalance };
+    
+    setCurrentUser(updatedUser);
+    setUsers(prevUsers =>
+      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
+    );
+
     setTransactions(prev =>
       prev.map(t => 
         t.id === transactionId ? { ...t, isDebitCompleted: true } : t
@@ -277,6 +292,19 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
+  const deleteUser = (userId: string): boolean => {
+    // Can't delete current user or if only one user remains
+    if (userId === currentUser?.id || users.length <= 1) return false;
+
+    // Remove user
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    
+    // Remove user's transactions
+    setTransactions(prev => prev.filter(t => t.userId !== userId));
+    
+    return true;
+  };
+
   const getUserTransactions = (): Transaction[] => {
     if (!currentUser) return [];
     return transactions.filter(t => t.userId === currentUser.id);
@@ -309,6 +337,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         toggleDarkMode,
         switchUser,
         addUser,
+        deleteUser,
         getUserTransactions,
         hasTransactions,
         markDebitCompleted,

@@ -10,7 +10,8 @@ import {
   ChevronRight,
   UserPlus,
   Check,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -21,6 +22,17 @@ import { useToast } from '@/hooks/use-toast';
 import TransactionList from './TransactionList';
 import ExportModal from './ExportModal';
 import TransactionFiltersComponent, { TransactionFilters } from './TransactionFilters';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -47,7 +59,8 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
     users,
     currentUser,
     switchUser,
-    addUser
+    addUser,
+    deleteUser
   } = useFinance();
   const { toast } = useToast();
 
@@ -129,6 +142,22 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
       description: 'You are now logged in as a different user',
     });
     onClose();
+  };
+
+  const handleDeleteUser = (userId: string, username: string) => {
+    const success = deleteUser(userId);
+    if (success) {
+      toast({
+        title: 'User deleted',
+        description: `User "${username}" and all their data have been removed`,
+      });
+    } else {
+      toast({
+        title: 'Cannot delete user',
+        description: 'You cannot delete the current user or the last remaining user',
+        variant: 'destructive',
+      });
+    }
   };
 
   const renderContent = () => {
@@ -259,16 +288,18 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
             {/* User List */}
             <div className="space-y-2 mb-6">
               {users.map(user => (
-                <button
+                <div
                   key={user.id}
-                  onClick={() => handleSwitchUser(user.id)}
-                  className={`w-full p-4 rounded-lg flex items-center justify-between transition-colors ${
+                  className={`p-4 rounded-lg flex items-center justify-between transition-colors ${
                     user.id === currentUser?.id 
                       ? 'bg-primary/10 border-2 border-primary' 
                       : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleSwitchUser(user.id)}
+                    className="flex items-center gap-3 flex-1"
+                  >
                     <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
@@ -278,11 +309,44 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
                         Balance: ₹{user.balance.toLocaleString('en-IN')}
                       </p>
                     </div>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {user.id === currentUser?.id && (
+                      <Check className="text-primary" size={20} />
+                    )}
+                    {user.id !== currentUser?.id && users.length > 1 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{user.username}"? 
+                              This will permanently remove all their transactions and data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteUser(user.id, user.username)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
-                  {user.id === currentUser?.id && (
-                    <Check className="text-primary" size={20} />
-                  )}
-                </button>
+                </div>
               ))}
             </div>
 
