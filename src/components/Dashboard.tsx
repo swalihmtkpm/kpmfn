@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
   Minus, 
-  CreditCard, 
+  HandCoins, 
   Settings, 
   LogOut,
   Wallet,
@@ -11,6 +11,7 @@ import {
   TrendingDown,
   IndianRupee
 } from 'lucide-react';
+import AnimatedBackground from './AnimatedBackground';
 import { Button } from '@/components/ui/button';
 import { useFinance } from '@/contexts/FinanceContext';
 import TransactionModal from './TransactionModal';
@@ -45,7 +46,8 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <AnimatedBackground />
       {/* Header */}
       <motion.header
         initial={{ y: -50, opacity: 0 }}
@@ -170,8 +172,8 @@ const Dashboard = () => {
                   onClick={() => openTransactionModal('debit')}
                   className="w-full h-20 flex-col gap-2 bg-warning hover:bg-warning/90 text-warning-foreground"
                 >
-                  <CreditCard size={24} />
-                  <span className="text-sm font-medium">Debit</span>
+                  <HandCoins size={24} />
+                  <span className="text-sm font-medium">Dept</span>
                 </Button>
               </motion.div>
             </div>
