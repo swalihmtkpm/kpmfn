@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { User, Transaction, TransactionType } from '@/types/finance';
+import { useToast } from '@/hooks/use-toast';
 
 interface DebitDetails {
   debitFrom: string;
@@ -12,11 +14,10 @@ interface FinanceContextType {
   users: User[];
   transactions: Transaction[];
   isDarkMode: boolean;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   addTransaction: (type: TransactionType, amount: number, reason: string, date: string, debitDetails?: DebitDetails) => boolean;
   deleteTransaction: (transactionId: string) => void;
-  changePassword: (oldPassword: string, newPassword: string) => boolean;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
   toggleDarkMode: () => void;
   switchUser: (userId: string) => boolean;
   addUser: (username: string, password: string) => boolean;
@@ -30,80 +31,51 @@ interface FinanceContextType {
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
-const DEFAULT_USERS: User[] = [
-  {
-    id: 'user_1',
-    username: 'mskpm',
-    password: '159357',
-    balance: 0,
-    createdAt: new Date().toISOString(),
-  },
-];
+interface FinanceProviderProps {
+  children: ReactNode;
+  userId: string;
+  userEmail: string;
+}
 
-export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, userId, userEmail }) => {
+  const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Load data from localStorage on mount
+  // Initialize user data from localStorage (scoped by userId)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('koppamee_users');
-    const savedTransactions = localStorage.getItem('koppamee_transactions');
+    const storageKey = `koppamee_data_${userId}`;
+    const savedData = localStorage.getItem(storageKey);
     const savedDarkMode = localStorage.getItem('koppamee_darkmode');
-    const savedCurrentUserId = localStorage.getItem('koppamee_current_user');
 
-    if (savedUsers) {
-      const parsedUsers = JSON.parse(savedUsers);
-      setUsers(parsedUsers);
+    if (savedData) {
+      const { users: savedUsers, transactions: savedTransactions, currentUserId } = JSON.parse(savedData);
+      setUsers(savedUsers);
+      setTransactions(savedTransactions || []);
       
-      if (savedCurrentUserId) {
-        const user = parsedUsers.find((u: User) => u.id === savedCurrentUserId);
+      if (currentUserId) {
+        const user = savedUsers.find((u: User) => u.id === currentUserId);
         if (user) {
           setCurrentUser(user);
+        } else if (savedUsers.length > 0) {
+          setCurrentUser(savedUsers[0]);
         }
+      } else if (savedUsers.length > 0) {
+        setCurrentUser(savedUsers[0]);
       }
     } else {
-      setUsers(DEFAULT_USERS);
-      localStorage.setItem('koppamee_users', JSON.stringify(DEFAULT_USERS));
-    }
-
-    if (savedTransactions) {
-      const parsedTransactions: Transaction[] = JSON.parse(savedTransactions);
-      
-      // Migrate existing transactions without SI numbers
-      let needsMigration = parsedTransactions.some(t => !t.siNumber);
-      if (needsMigration) {
-        // Group transactions by userId and assign SI numbers
-        const userTransactionCounters: { [userId: string]: number } = {};
-        
-        // Sort by date to assign SI numbers in chronological order
-        const sortedTransactions = [...parsedTransactions].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        
-        const migratedTransactions = sortedTransactions.map(t => {
-          if (!t.siNumber) {
-            if (!userTransactionCounters[t.userId]) {
-              // Find max existing SI for this user
-              const existingSiNumbers = parsedTransactions
-                .filter(tr => tr.userId === t.userId && tr.siNumber)
-                .map(tr => tr.siNumber);
-              userTransactionCounters[t.userId] = existingSiNumbers.length > 0 
-                ? Math.max(...existingSiNumbers) 
-                : 0;
-            }
-            userTransactionCounters[t.userId]++;
-            return { ...t, siNumber: userTransactionCounters[t.userId] };
-          }
-          return t;
-        });
-        
-        setTransactions(migratedTransactions);
-        localStorage.setItem('koppamee_transactions', JSON.stringify(migratedTransactions));
-      } else {
-        setTransactions(parsedTransactions);
-      }
+      // Create default user for new account
+      const defaultUser: User = {
+        id: `user_${Date.now()}`,
+        username: userEmail.split('@')[0] || 'User',
+        password: '',
+        balance: 0,
+        createdAt: new Date().toISOString(),
+      };
+      setUsers([defaultUser]);
+      setCurrentUser(defaultUser);
     }
 
     if (savedDarkMode) {
@@ -113,19 +85,20 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         document.documentElement.classList.add('dark');
       }
     }
-  }, []);
+  }, [userId, userEmail]);
 
-  // Save users to localStorage
+  // Save data to localStorage whenever it changes
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('koppamee_users', JSON.stringify(users));
+      const storageKey = `koppamee_data_${userId}`;
+      const data = {
+        users,
+        transactions,
+        currentUserId: currentUser?.id,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(data));
     }
-  }, [users]);
-
-  // Save transactions to localStorage
-  useEffect(() => {
-    localStorage.setItem('koppamee_transactions', JSON.stringify(transactions));
-  }, [transactions]);
+  }, [users, transactions, currentUser, userId]);
 
   // Save dark mode preference
   useEffect(() => {
@@ -137,19 +110,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [isDarkMode]);
 
-  const login = (username: string, password: string): boolean => {
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      localStorage.setItem('koppamee_current_user', user.id);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('koppamee_current_user');
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   const getNextSiNumber = (): number => {
@@ -252,26 +214,35 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setTransactions(prev => prev.filter(t => t.id !== transactionId));
   };
 
-  const changePassword = (oldPassword: string, newPassword: string): boolean => {
-    if (!currentUser || currentUser.password !== oldPassword) return false;
-
-    const updatedUser = { ...currentUser, password: newPassword };
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers =>
-      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
-    );
-    return true;
+  const changePassword = async (oldPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast({
+          title: 'Password change failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return false;
+      }
+      toast({
+        title: 'Password updated',
+        description: 'Your password has been changed successfully.',
+      });
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => !prev);
   };
 
-  const switchUser = (userId: string): boolean => {
-    const user = users.find(u => u.id === userId);
+  const switchUser = (localUserId: string): boolean => {
+    const user = users.find(u => u.id === localUserId);
     if (user) {
       setCurrentUser(user);
-      localStorage.setItem('koppamee_current_user', user.id);
       return true;
     }
     return false;
@@ -292,15 +263,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  const deleteUser = (userId: string): boolean => {
+  const deleteUser = (localUserId: string): boolean => {
     // Can't delete current user or if only one user remains
-    if (userId === currentUser?.id || users.length <= 1) return false;
+    if (localUserId === currentUser?.id || users.length <= 1) return false;
 
     // Remove user
-    setUsers(prev => prev.filter(u => u.id !== userId));
+    setUsers(prev => prev.filter(u => u.id !== localUserId));
     
     // Remove user's transactions
-    setTransactions(prev => prev.filter(t => t.userId !== userId));
+    setTransactions(prev => prev.filter(t => t.userId !== localUserId));
     
     return true;
   };
@@ -329,7 +300,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         users,
         transactions,
         isDarkMode,
-        login,
         logout,
         addTransaction,
         deleteTransaction,

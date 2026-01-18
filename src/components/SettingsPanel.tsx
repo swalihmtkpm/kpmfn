@@ -64,7 +64,7 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
   } = useFinance();
   const { toast } = useToast();
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (newPassword !== confirmPassword) {
@@ -76,31 +76,21 @@ const SettingsPanel = ({ isOpen, onClose }: SettingsPanelProps) => {
       return;
     }
 
-    if (newPassword.length < 4) {
+    if (newPassword.length < 6) {
       toast({
         title: 'Password too short',
-        description: 'Password must be at least 4 characters',
+        description: 'Password must be at least 6 characters',
         variant: 'destructive',
       });
       return;
     }
 
-    const success = changePassword(oldPassword, newPassword);
+    const success = await changePassword(oldPassword, newPassword);
     if (success) {
-      toast({
-        title: 'Password changed!',
-        description: 'Your password has been updated successfully',
-      });
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setView('main');
-    } else {
-      toast({
-        title: 'Failed to change password',
-        description: 'Current password is incorrect',
-        variant: 'destructive',
-      });
     }
   };
 
