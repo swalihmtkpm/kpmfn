@@ -4,7 +4,6 @@ import { Transaction } from '@/types/finance';
 import { format } from 'date-fns';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +24,6 @@ interface TransactionListProps {
 
 const TransactionList = ({ transactions, showDebitComplete = true, showDelete = true }: TransactionListProps) => {
   const { markDebitCompleted, deleteTransaction } = useFinance();
-  const { toast } = useToast();
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -58,20 +56,12 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
     }
   };
 
-  const handleMarkComplete = (transactionId: string, amount: number) => {
-    markDebitCompleted(transactionId);
-    toast({
-      title: 'Dept marked as received',
-      description: `₹${amount.toLocaleString('en-IN')} has been added back to your balance.`,
-    });
+  const handleMarkComplete = async (transactionId: string) => {
+    await markDebitCompleted(transactionId);
   };
 
-  const handleDelete = (transactionId: string, type: string, amount: number) => {
-    deleteTransaction(transactionId);
-    toast({
-      title: 'Transaction deleted',
-      description: `₹${amount.toLocaleString('en-IN')} ${type === 'deposit' ? 'removed from' : 'restored to'} your balance`,
-    });
+  const handleDelete = async (transactionId: string) => {
+    await deleteTransaction(transactionId);
   };
 
   if (transactions.length === 0) {
@@ -145,7 +135,7 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleMarkComplete(transaction.id, transaction.amount)}
+                      onClick={() => handleMarkComplete(transaction.id)}
                       className="h-7 text-xs gap-1.5 border-success text-success hover:bg-success hover:text-success-foreground"
                     >
                       <Circle size={12} />
@@ -189,7 +179,7 @@ const TransactionList = ({ transactions, showDebitComplete = true, showDelete = 
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => handleDelete(transaction.id, transaction.type, transaction.amount)}
+                        onClick={() => handleDelete(transaction.id)}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Delete
