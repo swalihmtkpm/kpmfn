@@ -20,13 +20,21 @@ import SettingsPanel from './SettingsPanel';
 import koppameeLogo from '@/assets/koppamee-logo.png';
 
 const Dashboard = () => {
-  const { currentUser, logout, hasTransactions, getUserTransactions } = useFinance();
+  const { currentUser, logout, hasTransactions, getUserTransactions, loading } = useFinance();
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdraw' | 'debit'>('deposit');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const userTransactions = getUserTransactions();
   const hasAnyTransactions = hasTransactions();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const openTransactionModal = (type: 'deposit' | 'withdraw' | 'debit') => {
     setTransactionType(type);

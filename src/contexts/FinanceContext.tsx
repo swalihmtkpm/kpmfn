@@ -1,7 +1,55 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Transaction, TransactionType } from '@/types/finance';
+import { TransactionType } from '@/types/finance';
 import { useToast } from '@/hooks/use-toast';
+
+interface Wallet {
+  id: string;
+  user_id: string;
+  name: string;
+  balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Transaction {
+  id: string;
+  wallet_id: string;
+  user_id: string;
+  si_number: number;
+  type: TransactionType;
+  amount: number;
+  reason: string;
+  date: string;
+  debit_from?: string;
+  debit_to?: string;
+  debit_return_date?: string;
+  is_debit_completed?: boolean;
+  created_at: string;
+}
+
+// Legacy types for UI compatibility
+interface LegacyUser {
+  id: string;
+  username: string;
+  password: string;
+  balance: number;
+  createdAt: string;
+}
+
+interface LegacyTransaction {
+  id: string;
+  siNumber: number;
+  type: TransactionType;
+  amount: number;
+  reason: string;
+  date: string;
+  userId: string;
+  debitFrom?: string;
+  debitTo?: string;
+  debitReturnDate?: string;
+  isDebitCompleted?: boolean;
+}
 
 interface DebitDetails {
   debitFrom: string;
@@ -10,23 +58,24 @@ interface DebitDetails {
 }
 
 interface FinanceContextType {
-  currentUser: User | null;
-  users: User[];
-  transactions: Transaction[];
+  currentUser: LegacyUser | null;
+  users: LegacyUser[];
+  transactions: LegacyTransaction[];
   isDarkMode: boolean;
+  loading: boolean;
   logout: () => Promise<void>;
-  addTransaction: (type: TransactionType, amount: number, reason: string, date: string, debitDetails?: DebitDetails) => boolean;
-  deleteTransaction: (transactionId: string) => void;
+  addTransaction: (type: TransactionType, amount: number, reason: string, date: string, debitDetails?: DebitDetails) => Promise<boolean>;
+  deleteTransaction: (transactionId: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
   toggleDarkMode: () => void;
   switchUser: (userId: string) => boolean;
   addUser: (username: string, password: string) => boolean;
   deleteUser: (userId: string) => boolean;
-  getUserTransactions: () => Transaction[];
+  getUserTransactions: () => LegacyTransaction[];
   hasTransactions: () => boolean;
-  markDebitCompleted: (transactionId: string) => void;
+  markDebitCompleted: (transactionId: string) => Promise<void>;
   getNextSiNumber: () => number;
-  exportTransactions: (fromSi: number, toSi: number) => Transaction[];
+  exportTransactions: (fromSi: number, toSi: number) => LegacyTransaction[];
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -37,47 +86,134 @@ interface FinanceProviderProps {
   userEmail: string;
 }
 
+// Convert DB transaction to legacy format
+const toLegacyTransaction = (t: Transaction): LegacyTransaction => ({
+  id: t.id,
+  siNumber: t.si_number,
+  type: t.type,
+  amount: Number(t.amount),
+  reason: t.reason,
+  date: t.date,
+  userId: t.user_id,
+  debitFrom: t.debit_from,
+  debitTo: t.debit_to,
+  debitReturnDate: t.debit_return_date,
+  isDebitCompleted: t.is_debit_completed,
+});
+
 export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, userId, userEmail }) => {
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Initialize user data from localStorage (scoped by userId)
-  useEffect(() => {
-    const storageKey = `koppamee_data_${userId}`;
-    const savedData = localStorage.getItem(storageKey);
-    const savedDarkMode = localStorage.getItem('koppamee_darkmode');
+  // Create legacy user object from wallet
+  const currentUser: LegacyUser | null = wallet ? {
+    id: wallet.id,
+    username: wallet.name,
+    password: '',
+    balance: Number(wallet.balance),
+    createdAt: wallet.created_at,
+  } : null;
 
-    if (savedData) {
-      const { users: savedUsers, transactions: savedTransactions, currentUserId } = JSON.parse(savedData);
-      setUsers(savedUsers);
-      setTransactions(savedTransactions || []);
-      
-      if (currentUserId) {
-        const user = savedUsers.find((u: User) => u.id === currentUserId);
-        if (user) {
-          setCurrentUser(user);
-        } else if (savedUsers.length > 0) {
-          setCurrentUser(savedUsers[0]);
-        }
-      } else if (savedUsers.length > 0) {
-        setCurrentUser(savedUsers[0]);
+  // For backwards compatibility - single user mode in cloud
+  const users: LegacyUser[] = currentUser ? [currentUser] : [];
+
+  // Fetch or create wallet
+  const initializeWallet = useCallback(async () => {
+    try {
+      // First, try to get existing wallet
+      const { data: existingWallet, error: fetchError } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error fetching wallet:', fetchError);
+        toast({
+          title: 'Error loading wallet',
+          description: fetchError.message,
+          variant: 'destructive',
+        });
+        return;
       }
-    } else {
-      // Create default user for new account
-      const defaultUser: User = {
-        id: `user_${Date.now()}`,
-        username: userEmail.split('@')[0] || 'User',
-        password: '',
-        balance: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setUsers([defaultUser]);
-      setCurrentUser(defaultUser);
+
+      if (existingWallet) {
+        setWallet(existingWallet);
+      } else {
+        // Create new wallet
+        const { data: newWallet, error: createError } = await supabase
+          .from('wallets')
+          .insert({
+            user_id: userId,
+            name: userEmail.split('@')[0] || 'Main Wallet',
+            balance: 0,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating wallet:', createError);
+          toast({
+            title: 'Error creating wallet',
+            description: createError.message,
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setWallet(newWallet);
+      }
+    } catch (err) {
+      console.error('Wallet initialization error:', err);
+    }
+  }, [userId, userEmail, toast]);
+
+  // Fetch transactions
+  const fetchTransactions = useCallback(async () => {
+    if (!wallet) return;
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('wallet_id', wallet.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching transactions:', error);
+      return;
     }
 
+    // Cast the type field to TransactionType
+    const typedData = (data || []).map(t => ({
+      ...t,
+      type: t.type as TransactionType,
+    }));
+    setTransactions(typedData);
+  }, [wallet]);
+
+  // Initialize
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await initializeWallet();
+      setLoading(false);
+    };
+    init();
+  }, [initializeWallet]);
+
+  // Fetch transactions when wallet is loaded
+  useEffect(() => {
+    if (wallet) {
+      fetchTransactions();
+    }
+  }, [wallet, fetchTransactions]);
+
+  // Load dark mode preference
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('koppamee_darkmode');
     if (savedDarkMode) {
       const darkMode = JSON.parse(savedDarkMode);
       setIsDarkMode(darkMode);
@@ -85,20 +221,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, user
         document.documentElement.classList.add('dark');
       }
     }
-  }, [userId, userEmail]);
-
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    if (users.length > 0) {
-      const storageKey = `koppamee_data_${userId}`;
-      const data = {
-        users,
-        transactions,
-        currentUserId: currentUser?.id,
-      };
-      localStorage.setItem(storageKey, JSON.stringify(data));
-    }
-  }, [users, transactions, currentUser, userId]);
+  }, []);
 
   // Save dark mode preference
   useEffect(() => {
@@ -115,102 +238,164 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, user
   };
 
   const getNextSiNumber = (): number => {
-    if (!currentUser) return 1;
-    const userTransactions = transactions.filter(t => t.userId === currentUser.id);
-    if (userTransactions.length === 0) return 1;
-    const maxSi = Math.max(...userTransactions.map(t => t.siNumber || 0));
+    if (transactions.length === 0) return 1;
+    const maxSi = Math.max(...transactions.map(t => t.si_number || 0));
     return maxSi + 1;
   };
 
-  const addTransaction = (
+  const addTransaction = async (
     type: TransactionType, 
     amount: number, 
     reason: string, 
     date: string,
     debitDetails?: DebitDetails
-  ): boolean => {
-    if (!currentUser) return false;
+  ): Promise<boolean> => {
+    if (!wallet) return false;
 
     if (type === 'withdraw' || type === 'debit') {
-      if (currentUser.balance < amount) {
+      if (Number(wallet.balance) < amount) {
         return false;
       }
     }
 
-    const newTransaction: Transaction = {
-      id: `txn_${Date.now()}`,
-      siNumber: getNextSiNumber(),
-      type,
-      amount,
-      reason,
-      date,
-      userId: currentUser.id,
-      ...(type === 'debit' && debitDetails && {
-        debitFrom: debitDetails.debitFrom,
-        debitTo: debitDetails.debitTo,
-        isDebitCompleted: false,
-        debitReturnDate: debitDetails.debitReturnDate,
-      }),
-    };
-
     const newBalance = type === 'deposit' 
-      ? currentUser.balance + amount 
-      : currentUser.balance - amount;
+      ? Number(wallet.balance) + amount 
+      : Number(wallet.balance) - amount;
 
-    const updatedUser = { ...currentUser, balance: newBalance };
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers => 
-      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
-    );
-    setTransactions(prev => [newTransaction, ...prev]);
+    // Insert transaction
+    const { data: newTransaction, error: txnError } = await supabase
+      .from('transactions')
+      .insert({
+        wallet_id: wallet.id,
+        user_id: userId,
+        si_number: getNextSiNumber(),
+        type,
+        amount,
+        reason,
+        date,
+        ...(type === 'debit' && debitDetails && {
+          debit_from: debitDetails.debitFrom,
+          debit_to: debitDetails.debitTo,
+          debit_return_date: debitDetails.debitReturnDate || null,
+          is_debit_completed: false,
+        }),
+      })
+      .select()
+      .single();
+
+    if (txnError) {
+      console.error('Error adding transaction:', txnError);
+      toast({
+        title: 'Error adding transaction',
+        description: txnError.message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    // Update wallet balance
+    const { error: walletError } = await supabase
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('id', wallet.id);
+
+    if (walletError) {
+      console.error('Error updating balance:', walletError);
+      return false;
+    }
+
+    setWallet({ ...wallet, balance: newBalance });
+    setTransactions(prev => [{
+      ...newTransaction,
+      type: newTransaction.type as TransactionType,
+    }, ...prev]);
 
     return true;
   };
 
-  const markDebitCompleted = (transactionId: string) => {
-    if (!currentUser) return;
+  const markDebitCompleted = async (transactionId: string) => {
+    if (!wallet) return;
 
     const transaction = transactions.find(t => t.id === transactionId);
-    if (!transaction || transaction.type !== 'debit' || transaction.isDebitCompleted) return;
+    if (!transaction || transaction.type !== 'debit' || transaction.is_debit_completed) return;
 
-    // Add the dept amount back to balance when marked as received
-    const newBalance = currentUser.balance + transaction.amount;
-    const updatedUser = { ...currentUser, balance: newBalance };
-    
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers =>
-      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
-    );
+    const newBalance = Number(wallet.balance) + Number(transaction.amount);
 
-    setTransactions(prev =>
-      prev.map(t => 
-        t.id === transactionId ? { ...t, isDebitCompleted: true } : t
-      )
-    );
-  };
+    // Update transaction
+    const { error: txnError } = await supabase
+      .from('transactions')
+      .update({ is_debit_completed: true })
+      .eq('id', transactionId);
 
-  const deleteTransaction = (transactionId: string) => {
-    if (!currentUser) return;
-
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (!transaction || transaction.userId !== currentUser.id) return;
-
-    // Adjust balance based on transaction type
-    let newBalance = currentUser.balance;
-    if (transaction.type === 'deposit') {
-      newBalance -= transaction.amount;
-    } else {
-      newBalance += transaction.amount;
+    if (txnError) {
+      console.error('Error marking debit completed:', txnError);
+      return;
     }
 
-    // Update user balance
-    const updatedUser = { ...currentUser, balance: newBalance };
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers =>
-      prevUsers.map(u => u.id === currentUser.id ? updatedUser : u)
+    // Update wallet balance
+    const { error: walletError } = await supabase
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('id', wallet.id);
+
+    if (walletError) {
+      console.error('Error updating balance:', walletError);
+      return;
+    }
+
+    setWallet({ ...wallet, balance: newBalance });
+    setTransactions(prev =>
+      prev.map(t => t.id === transactionId ? { ...t, is_debit_completed: true } : t)
     );
 
-    // Remove transaction
+    toast({
+      title: 'Dept received!',
+      description: `₹${Number(transaction.amount).toLocaleString('en-IN')} has been added back to your balance.`,
+    });
+  };
+
+  const deleteTransaction = async (transactionId: string) => {
+    if (!wallet) return;
+
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) return;
+
+    // Calculate new balance
+    let newBalance = Number(wallet.balance);
+    if (transaction.type === 'deposit') {
+      newBalance -= Number(transaction.amount);
+    } else {
+      newBalance += Number(transaction.amount);
+    }
+
+    // Delete transaction
+    const { error: deleteError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', transactionId);
+
+    if (deleteError) {
+      console.error('Error deleting transaction:', deleteError);
+      toast({
+        title: 'Error deleting transaction',
+        description: deleteError.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Update wallet balance
+    const { error: walletError } = await supabase
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('id', wallet.id);
+
+    if (walletError) {
+      console.error('Error updating balance:', walletError);
+      return;
+    }
+
+    setWallet({ ...wallet, balance: newBalance });
     setTransactions(prev => prev.filter(t => t.id !== transactionId));
   };
 
@@ -239,58 +424,37 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, user
     setIsDarkMode(prev => !prev);
   };
 
+  // These are kept for UI compatibility but not fully functional in cloud mode
   const switchUser = (localUserId: string): boolean => {
-    const user = users.find(u => u.id === localUserId);
-    if (user) {
-      setCurrentUser(user);
-      return true;
-    }
-    return false;
+    return localUserId === wallet?.id;
   };
 
   const addUser = (username: string, password: string): boolean => {
-    if (users.some(u => u.username === username)) return false;
-
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      username,
-      password,
-      balance: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    setUsers(prev => [...prev, newUser]);
-    return true;
+    toast({
+      title: 'Feature not available',
+      description: 'Multiple local users are not supported in cloud mode. Create a new account instead.',
+      variant: 'destructive',
+    });
+    return false;
   };
 
   const deleteUser = (localUserId: string): boolean => {
-    // Can't delete current user or if only one user remains
-    if (localUserId === currentUser?.id || users.length <= 1) return false;
-
-    // Remove user
-    setUsers(prev => prev.filter(u => u.id !== localUserId));
-    
-    // Remove user's transactions
-    setTransactions(prev => prev.filter(t => t.userId !== localUserId));
-    
-    return true;
+    return false;
   };
 
-  const getUserTransactions = (): Transaction[] => {
-    if (!currentUser) return [];
-    return transactions.filter(t => t.userId === currentUser.id);
+  const getUserTransactions = (): LegacyTransaction[] => {
+    return transactions.map(toLegacyTransaction);
   };
 
   const hasTransactions = (): boolean => {
-    if (!currentUser) return false;
-    return transactions.some(t => t.userId === currentUser.id);
+    return transactions.length > 0;
   };
 
-  const exportTransactions = (fromSi: number, toSi: number): Transaction[] => {
-    if (!currentUser) return [];
+  const exportTransactions = (fromSi: number, toSi: number): LegacyTransaction[] => {
     return transactions
-      .filter(t => t.userId === currentUser.id && t.siNumber >= fromSi && t.siNumber <= toSi)
-      .sort((a, b) => a.siNumber - b.siNumber);
+      .filter(t => t.si_number >= fromSi && t.si_number <= toSi)
+      .sort((a, b) => a.si_number - b.si_number)
+      .map(toLegacyTransaction);
   };
 
   return (
@@ -298,8 +462,9 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children, user
       value={{
         currentUser,
         users,
-        transactions,
+        transactions: transactions.map(toLegacyTransaction),
         isDarkMode,
+        loading,
         logout,
         addTransaction,
         deleteTransaction,

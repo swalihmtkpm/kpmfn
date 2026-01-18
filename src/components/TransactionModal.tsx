@@ -45,7 +45,9 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const amountNum = parseFloat(amount);
@@ -86,13 +88,15 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
       return;
     }
 
+    setIsSubmitting(true);
     const debitDetails = type === 'debit' ? {
       debitFrom: debitFrom.trim(),
       debitTo: debitTo.trim(),
       debitReturnDate: debitReturnDate?.toISOString(),
     } : undefined;
 
-    const success = addTransaction(type, amountNum, reason.trim(), date.toISOString(), debitDetails);
+    const success = await addTransaction(type, amountNum, reason.trim(), date.toISOString(), debitDetails);
+    setIsSubmitting(false);
     
     if (success) {
       toast({
@@ -299,10 +303,10 @@ const TransactionModal = ({ isOpen, onClose, type }: TransactionModalProps) => {
 
               <Button
                 type="submit"
-                disabled={insufficientFunds}
+                disabled={insufficientFunds || isSubmitting}
                 className={`w-full h-14 ${getTypeColor()} text-primary-foreground font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50`}
               >
-                {type === 'deposit' ? 'Add Money' : 'Confirm Transaction'}
+                {isSubmitting ? 'Processing...' : type === 'deposit' ? 'Add Money' : 'Confirm Transaction'}
               </Button>
             </form>
           </motion.div>
