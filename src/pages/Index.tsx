@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FullPageLoader } from '@/components/LogoSpinner';
 
 const PAGE_SIZE = 50;
 
@@ -230,9 +231,7 @@ export default function Index() {
         </div>
 
         {loading ? (
-          <div className="py-16 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
+          <FullPageLoader />
         ) : (
           <>
             <BookGrid books={cards} />

@@ -1,6 +1,7 @@
 import { ReactNode, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Globe, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Globe, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import logoAsset from '@/assets/library-logo.png.asset.json';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +33,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             className="flex items-center gap-2 group select-none"
             aria-label="logo"
           >
-            <div className="w-10 h-10 rounded-xl gradient-primary text-primary-foreground flex items-center justify-center shadow-soft group-active:scale-95 transition">
-              <BookOpen className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl bg-white border flex items-center justify-center shadow-soft group-active:scale-95 transition overflow-hidden">
+              <img src={logoAsset.url} alt="" className="w-9 h-9 object-contain" draggable={false} />
             </div>
             <div className="leading-tight text-start">
               <div className="font-extrabold text-foreground text-base md:text-lg">{t('appName')}</div>

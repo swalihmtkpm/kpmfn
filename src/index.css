@@ -6,28 +6,28 @@
 
 @layer base {
   :root {
-    /* Light: white background, dark green primary */
+    /* Light: white background, deep navy blue primary */
     --background: 0 0% 100%;
-    --foreground: 150 30% 10%;
+    --foreground: 220 60% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 150 30% 10%;
+    --card-foreground: 220 60% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 150 30% 10%;
+    --popover-foreground: 220 60% 12%;
 
-    --primary: 152 60% 18%;
+    --primary: 220 75% 18%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 152 55% 32%;
+    --primary-glow: 220 70% 38%;
 
-    --secondary: 150 30% 96%;
-    --secondary-foreground: 152 60% 18%;
+    --secondary: 220 30% 96%;
+    --secondary-foreground: 220 75% 18%;
 
-    --muted: 150 15% 95%;
-    --muted-foreground: 150 10% 40%;
+    --muted: 220 20% 95%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 152 50% 92%;
-    --accent-foreground: 152 60% 18%;
+    --accent: 220 40% 94%;
+    --accent-foreground: 220 75% 18%;
 
     --destructive: 0 75% 45%;
     --destructive-foreground: 0 0% 100%;
@@ -36,52 +36,52 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 150 30% 10%;
+    --warning-foreground: 220 60% 12%;
 
-    --border: 150 20% 90%;
-    --input: 150 20% 90%;
-    --ring: 152 60% 25%;
+    --border: 220 25% 90%;
+    --input: 220 25% 90%;
+    --ring: 220 75% 25%;
 
     --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(152 60% 14%) 0%, hsl(152 55% 28%) 100%);
-    --gradient-hero: linear-gradient(160deg, hsl(152 60% 12%) 0%, hsl(152 50% 25%) 60%, hsl(152 40% 35%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(150 20% 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(220 80% 12%) 0%, hsl(220 70% 28%) 100%);
+    --gradient-hero: linear-gradient(160deg, hsl(220 80% 10%) 0%, hsl(220 70% 22%) 60%, hsl(220 60% 32%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
 
-    --shadow-sm: 0 1px 2px 0 hsl(152 60% 14% / 0.05);
-    --shadow-md: 0 4px 12px -2px hsl(152 60% 14% / 0.12);
-    --shadow-lg: 0 16px 40px -8px hsl(152 60% 14% / 0.25);
+    --shadow-sm: 0 1px 2px 0 hsl(220 80% 12% / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(220 80% 12% / 0.12);
+    --shadow-lg: 0 16px 40px -8px hsl(220 80% 12% / 0.25);
   }
 
   .dark {
-    --background: 152 30% 8%;
+    --background: 220 50% 7%;
     --foreground: 0 0% 96%;
 
-    --card: 152 25% 11%;
+    --card: 220 40% 10%;
     --card-foreground: 0 0% 96%;
 
-    --popover: 152 25% 11%;
+    --popover: 220 40% 10%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 152 50% 50%;
-    --primary-foreground: 152 60% 8%;
-    --primary-glow: 152 55% 60%;
+    --primary: 220 70% 55%;
+    --primary-foreground: 220 60% 8%;
+    --primary-glow: 220 75% 65%;
 
-    --secondary: 152 20% 16%;
+    --secondary: 220 30% 16%;
     --secondary-foreground: 0 0% 96%;
 
-    --muted: 152 15% 18%;
-    --muted-foreground: 150 10% 65%;
+    --muted: 220 25% 18%;
+    --muted-foreground: 220 10% 65%;
 
-    --accent: 152 30% 20%;
+    --accent: 220 40% 20%;
     --accent-foreground: 0 0% 96%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 152 15% 22%;
-    --input: 152 15% 20%;
-    --ring: 152 50% 50%;
+    --border: 220 25% 22%;
+    --input: 220 25% 20%;
+    --ring: 220 70% 55%;
   }
 }
 
@@ -94,10 +94,7 @@
 
   body { @apply bg-background text-foreground antialiased; }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: inherit;
-    font-weight: 700;
-  }
+  h1, h2, h3, h4, h5, h6 { font-family: inherit; font-weight: 700; }
 }
 
 @layer components {
@@ -118,10 +115,16 @@
 }
 
 @keyframes logo-pop {
-  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
-  60% { transform: scale(1.08) rotate(2deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
+@keyframes spin-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+.animate-spin-ccw { animation: spin-ccw 2.4s linear infinite; transform-origin: 50% 50%; }
+
 @keyframes shine {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }

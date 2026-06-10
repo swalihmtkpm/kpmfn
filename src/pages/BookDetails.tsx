@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { BookOpen, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { FullPageLoader } from '@/components/LogoSpinner';
 
 type Detail = {
   id: string;
@@ -124,13 +125,7 @@ export default function BookDetails() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="py-20 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      </Layout>
-    );
+    return <Layout><FullPageLoader /></Layout>;
   }
 
   if (!book) {
