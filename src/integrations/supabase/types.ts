@@ -93,12 +93,15 @@ export type Database = {
         Row: {
           author_id: string | null
           available_copies: number
+          average_rating: number
+          book_code: string | null
           category_id: string | null
           cover_path: string | null
           created_at: string
           description_ar: string | null
           description_en: string | null
           file_path: string | null
+          full_text: string | null
           id: string
           is_digital: boolean
           is_physical: boolean
@@ -107,20 +110,26 @@ export type Database = {
           pages: number | null
           published_year: number | null
           publisher_id: string | null
+          ratings_count: number
+          si_number: number
           title_ar: string
           title_en: string | null
           total_copies: number
           updated_at: string
+          volume: string | null
         }
         Insert: {
           author_id?: string | null
           available_copies?: number
+          average_rating?: number
+          book_code?: string | null
           category_id?: string | null
           cover_path?: string | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
           file_path?: string | null
+          full_text?: string | null
           id?: string
           is_digital?: boolean
           is_physical?: boolean
@@ -129,20 +138,26 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher_id?: string | null
+          ratings_count?: number
+          si_number?: number
           title_ar: string
           title_en?: string | null
           total_copies?: number
           updated_at?: string
+          volume?: string | null
         }
         Update: {
           author_id?: string | null
           available_copies?: number
+          average_rating?: number
+          book_code?: string | null
           category_id?: string | null
           cover_path?: string | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
           file_path?: string | null
+          full_text?: string | null
           id?: string
           is_digital?: boolean
           is_physical?: boolean
@@ -151,10 +166,13 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher_id?: string | null
+          ratings_count?: number
+          si_number?: number
           title_ar?: string
           title_en?: string | null
           total_copies?: number
           updated_at?: string
+          volume?: string | null
         }
         Relationships: [
           {
@@ -535,6 +553,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      recompute_book_rating: { Args: { _book_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
