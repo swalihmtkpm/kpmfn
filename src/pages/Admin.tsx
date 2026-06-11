@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,12 +9,13 @@ import TaxonomyManager from '@/components/admin/TaxonomyManager';
 import AdsManager from '@/components/admin/AdsManager';
 import SettingsPanel from '@/components/admin/SettingsPanel';
 import AnalyticsPanel from '@/components/admin/AnalyticsPanel';
+import BorrowRequestsManager from '@/components/admin/BorrowRequestsManager';
+import BorrowRecordsManager from '@/components/admin/BorrowRecordsManager';
 
 export default function Admin() {
   const { isAdmin, loading } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
-
   useEffect(() => { if (!loading && !isAdmin) navigate('/'); }, [isAdmin, loading, navigate]);
   if (!isAdmin) return null;
 
@@ -30,7 +31,8 @@ export default function Admin() {
             <TabsTrigger value="books">{t('books')}</TabsTrigger>
             <TabsTrigger value="categories">{t('categories')}</TabsTrigger>
             <TabsTrigger value="authors">{t('authors')}</TabsTrigger>
-            <TabsTrigger value="publishers">{t('publishers')}</TabsTrigger>
+            <TabsTrigger value="requests">{t('borrowRequests')}</TabsTrigger>
+            <TabsTrigger value="records">{t('borrowRecords')}</TabsTrigger>
             <TabsTrigger value="ads">{t('advertisements')}</TabsTrigger>
             <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
           </TabsList>
@@ -39,7 +41,8 @@ export default function Admin() {
           <TabsContent value="books"><BooksManager /></TabsContent>
           <TabsContent value="categories"><TaxonomyManager table="categories" /></TabsContent>
           <TabsContent value="authors"><TaxonomyManager table="authors" /></TabsContent>
-          <TabsContent value="publishers"><TaxonomyManager table="publishers" /></TabsContent>
+          <TabsContent value="requests"><BorrowRequestsManager /></TabsContent>
+          <TabsContent value="records"><BorrowRecordsManager /></TabsContent>
           <TabsContent value="ads"><AdsManager /></TabsContent>
           <TabsContent value="settings"><SettingsPanel /></TabsContent>
         </Tabs>

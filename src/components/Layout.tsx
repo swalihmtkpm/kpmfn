@@ -1,6 +1,6 @@
 import { ReactNode, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Globe, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Globe, LogOut, ShieldCheck } from 'lucide-react';
 import logoAsset from '@/assets/library-logo.png.asset.json';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -8,12 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { t, lang, setLang } = useI18n();
-  const { user, isAdmin, signOut } = useAuth();
+  const { isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const tapCount = useRef(0);
   const tapTimer = useRef<number | null>(null);
 
-  // Hidden admin: tap logo 7 times within 3 seconds
   const handleLogoTap = () => {
     tapCount.current += 1;
     if (tapTimer.current) window.clearTimeout(tapTimer.current);
@@ -28,11 +27,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-          <button
-            onClick={handleLogoTap}
-            className="flex items-center gap-2 group select-none"
-            aria-label="logo"
-          >
+          <button onClick={handleLogoTap} className="flex items-center gap-2 group select-none" aria-label="logo">
             <div className="w-11 h-11 rounded-xl bg-white border flex items-center justify-center shadow-soft group-active:scale-95 transition overflow-hidden">
               <img src={logoAsset.url} alt="" className="w-9 h-9 object-contain" draggable={false} />
             </div>
@@ -43,41 +38,24 @@ export default function Layout({ children }: { children: ReactNode }) {
           </button>
 
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-              className="gap-1.5"
-              aria-label={t('languageSwitch')}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="gap-1.5" aria-label={t('languageSwitch')}>
               <Globe className="w-4 h-4" />
               <span className="text-xs font-semibold">{lang === 'ar' ? 'EN' : 'ع'}</span>
             </Button>
-
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={() => navigate('/admin')} className="gap-1.5">
-                <ShieldCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('adminPanel')}</span>
-              </Button>
-            )}
-
-            {user ? (
-              <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('logout')}</span>
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => navigate('/auth')} className="gap-1.5">
-                <LogIn className="w-4 h-4" />
-                {t('login')}
-              </Button>
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/admin')} className="gap-1.5">
+                  <ShieldCheck className="w-4 h-4" /><span className="hidden sm:inline">{t('adminPanel')}</span>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
       </header>
-
       <main className="flex-1">{children}</main>
-
       <footer className="border-t mt-12">
         <div className="max-w-6xl mx-auto px-4 py-6 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {t('appName')}

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { BookOpen, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useI18n } from '@/lib/i18n';
-import { LogoSpinner } from '@/components/LogoSpinner';
+import LogoSpinner from '@/components/LogoSpinner';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 

@@ -7,14 +7,13 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import Index from './pages/Index';
 import BookDetails from './pages/BookDetails';
-import AuthPage from './pages/Auth';
 import AdminLogin from './pages/AdminLogin';
 import Admin from './pages/Admin';
-import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 
 import IntroSplash from './components/IntroSplash';
 import ForcePasswordChange from './components/ForcePasswordChange';
+import LibraryAssistant from './components/LibraryAssistant';
 import { LanguageProvider } from './lib/i18n';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -25,26 +24,22 @@ function AppShell() {
   const [introDone, setIntroDone] = useState(
     () => sessionStorage.getItem('imthiyaz_intro') === '1'
   );
-
-  useEffect(() => {
-    if (introDone) sessionStorage.setItem('imthiyaz_intro', '1');
-  }, [introDone]);
+  useEffect(() => { if (introDone) sessionStorage.setItem('imthiyaz_intro', '1'); }, [introDone]);
 
   if (!introDone) return <IntroSplash onDone={() => setIntroDone(true)} />;
-
-  // Force password change blocks the whole app until done
   if (!loading && profile?.must_change_password) return <ForcePasswordChange />;
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/book/:id" element={<BookDetails />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/book/:id" element={<BookDetails />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <LibraryAssistant />
+    </>
   );
 }
 
