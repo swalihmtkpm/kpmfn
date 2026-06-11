@@ -112,6 +112,7 @@ export type Database = {
           publisher_id: string | null
           ratings_count: number
           si_number: number
+          status: string
           title_ar: string
           title_en: string | null
           total_copies: number
@@ -140,6 +141,7 @@ export type Database = {
           publisher_id?: string | null
           ratings_count?: number
           si_number?: number
+          status?: string
           title_ar: string
           title_en?: string | null
           total_copies?: number
@@ -168,6 +170,7 @@ export type Database = {
           publisher_id?: string | null
           ratings_count?: number
           si_number?: number
+          status?: string
           title_ar?: string
           title_en?: string | null
           total_copies?: number
@@ -202,6 +205,7 @@ export type Database = {
         Row: {
           book_id: string
           borrowed_at: string
+          borrower_name: string | null
           created_at: string
           due_at: string | null
           id: string
@@ -209,11 +213,12 @@ export type Database = {
           request_id: string | null
           returned_at: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           book_id: string
           borrowed_at?: string
+          borrower_name?: string | null
           created_at?: string
           due_at?: string | null
           id?: string
@@ -221,11 +226,12 @@ export type Database = {
           request_id?: string | null
           returned_at?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           book_id?: string
           borrowed_at?: string
+          borrower_name?: string | null
           created_at?: string
           due_at?: string | null
           id?: string
@@ -233,7 +239,7 @@ export type Database = {
           request_id?: string | null
           returned_at?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -257,40 +263,64 @@ export type Database = {
           admin_notes: string | null
           book_id: string
           created_at: string
+          days_requested: number | null
           decided_at: string | null
           decided_by: string | null
+          expected_return_date: string | null
           id: string
           notes: string | null
           request_type: string
+          requester_address: string | null
+          requester_class: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          requester_place: string | null
+          requester_type: string | null
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           admin_notes?: string | null
           book_id: string
           created_at?: string
+          days_requested?: number | null
           decided_at?: string | null
           decided_by?: string | null
+          expected_return_date?: string | null
           id?: string
           notes?: string | null
           request_type: string
+          requester_address?: string | null
+          requester_class?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          requester_place?: string | null
+          requester_type?: string | null
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           admin_notes?: string | null
           book_id?: string
           created_at?: string
+          days_requested?: number | null
           decided_at?: string | null
           decided_by?: string | null
+          expected_return_date?: string | null
           id?: string
           notes?: string | null
           request_type?: string
+          requester_address?: string | null
+          requester_class?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          requester_place?: string | null
+          requester_type?: string | null
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -415,25 +445,28 @@ export type Database = {
           book_id: string
           created_at: string
           id: string
+          rater_name: string | null
           stars: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           book_id: string
           created_at?: string
           id?: string
+          rater_name?: string | null
           stars: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           book_id?: string
           created_at?: string
           id?: string
+          rater_name?: string | null
           stars?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -451,24 +484,27 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          reviewer_name: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           book_id: string
           content: string
           created_at?: string
           id?: string
+          reviewer_name?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           book_id?: string
           content?: string
           created_at?: string
           id?: string
+          reviewer_name?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
