@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 
-type Row = { id: string; name_ar: string; name_en: string | null; [k: string]: any };
+type Row = { id: string; name_ar: string; name_en: string | null;[k: string]: any };
 type Table = 'categories' | 'authors' | 'publishers';
 
 export default function TaxonomyManager({ table }: { table: Table }) {
   const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<Partial<Row> | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     const { data } = await supabase.from(table).select('*').order('name_ar');
@@ -42,19 +44,41 @@ export default function TaxonomyManager({ table }: { table: Table }) {
     load();
   };
 
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([{ name_ar: 'مثال', name_en: 'Example' }]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, table);
+    XLSX.writeFile(wb, `${table}_template.xlsx`);
+  };
+
+  const bulkImport = async (file: File) => {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json<any>(ws);
+    const rows = data.map((r) => ({
+      name_ar: String(r.name_ar ?? r['الاسم'] ?? '').trim(),
+      name_en: String(r.name_en ?? r['name'] ?? '').trim() || null,
+    })).filter((r) => r.name_ar);
+    if (!rows.length) return toast.error('No rows');
+    const { error } = await supabase.from(table).insert(rows);
+    if (error) return toast.error(error.message);
+    toast.success(t('importCount').replace('{n}', String(rows.length)));
+    load();
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5"><Download className="w-4 h-4" />{t('downloadTemplate')}</Button>
+        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} className="gap-1.5"><Upload className="w-4 h-4" />{t('bulkUpload')}</Button>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => e.target.files?.[0] && bulkImport(e.target.files[0])} />
         <Button onClick={() => setEditing({ name_ar: '', name_en: '' })} className="gap-1.5"><Plus className="w-4 h-4" />{t('create')}</Button>
       </div>
       <div className="border rounded-xl overflow-hidden bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground">
-            <tr>
-              <th className="text-start p-3">{t('nameAr')}</th>
-              <th className="text-start p-3">{t('nameEn')}</th>
-              <th className="text-end p-3">{t('actions')}</th>
-            </tr>
+            <tr><th className="text-start p-3">{t('nameAr')}</th><th className="text-start p-3">{t('nameEn')}</th><th className="text-end p-3">{t('actions')}</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
