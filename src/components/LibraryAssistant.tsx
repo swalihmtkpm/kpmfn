@@ -19,6 +19,12 @@ export default function LibraryAssistant() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, busy]);
 
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('open-library-assistant', onOpen);
+    return () => window.removeEventListener('open-library-assistant', onOpen);
+  }, []);
+
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
