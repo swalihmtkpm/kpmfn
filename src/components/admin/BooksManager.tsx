@@ -182,6 +182,25 @@ export default function BooksManager() {
     XLSX.writeFile(wb, `catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const downloadTemplate = () => {
+    const headers = [{
+      book_code: 'BK-001',
+      title_ar: 'عنوان الكتاب',
+      title_en: 'Book title',
+      author: 'اسم المؤلف',
+      publisher: 'اسم الناشر',
+      category: 'اسم التصنيف',
+      volume: '1',
+      pages: 200,
+      description_ar: 'وصف قصير',
+      description_en: 'Short description',
+    }];
+    const ws = XLSX.utils.json_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'books-template.xlsx');
+  };
+
   const importXlsx = async (file: File) => {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf);
@@ -223,6 +242,9 @@ export default function BooksManager() {
         <Input placeholder={t('searchBooks')} value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-xs" />
         <div className="flex-1" />
         <Button onClick={openNew} className="gap-1.5"><Plus className="w-4 h-4" />{t('addBook')}</Button>
+        <Button variant="outline" onClick={downloadTemplate} className="gap-1.5">
+          <FileSpreadsheet className="w-4 h-4" />{t('downloadTemplate')}
+        </Button>
         <Button variant="outline" onClick={() => xlsxRef.current?.click()} className="gap-1.5">
           <Upload className="w-4 h-4" />{t('bulkUpload')}
         </Button>

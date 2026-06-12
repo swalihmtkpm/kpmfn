@@ -1,15 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const cache = new Map<string, { url: string; expires: number }>();
-
-export async function signedCoverUrl(path: string | null | undefined): Promise<string | null> {
+export function publicCoverUrl(path: string | null | undefined): string | null {
   if (!path) return null;
-  const key = `book-covers:${path}`;
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (hit && hit.expires > now) return hit.url;
-  const { data } = await supabase.storage.from('book-covers').createSignedUrl(path, 60 * 60);
-  if (!data?.signedUrl) return null;
-  cache.set(key, { url: data.signedUrl, expires: now + 55 * 60 * 1000 });
-  return data.signedUrl;
+  return supabase.storage.from('book-covers').getPublicUrl(path).data.publicUrl;
+}
+
+export function publicAdUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return supabase.storage.from('ad-images').getPublicUrl(path).data.publicUrl;
+}
+
+// Backwards-compatible signed url (kept for any callers still using it)
+export async function signedCoverUrl(path: string | null | undefined): Promise<string | null> {
+  return publicCoverUrl(path);
 }
