@@ -242,6 +242,9 @@ export default function BooksManager() {
         <Input placeholder={t('searchBooks')} value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-xs" />
         <div className="flex-1" />
         <Button onClick={openNew} className="gap-1.5"><Plus className="w-4 h-4" />{t('addBook')}</Button>
+        <Button variant="outline" onClick={downloadTemplate} className="gap-1.5">
+          <FileSpreadsheet className="w-4 h-4" />{t('downloadTemplate')}
+        </Button>
         <Button variant="outline" onClick={() => xlsxRef.current?.click()} className="gap-1.5">
           <Upload className="w-4 h-4" />{t('bulkUpload')}
         </Button>
