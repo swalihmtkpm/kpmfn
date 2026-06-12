@@ -324,6 +324,15 @@ const dict = {
     thinking: 'Thinking...',
     aiUnavailable: 'Assistant unavailable',
     openAssistant: 'Open assistant',
+    browseCategories: 'Browse Categories',
+    catalog: 'Catalog',
+    aiAssistant: 'Assistant',
+    about: 'About',
+    contact: 'Contact',
+    settingsHeader: 'Settings',
+    chooseLanguage: 'Choose language',
+    arabic: 'العربية',
+    english: 'English',
   },
 } as const;
 
