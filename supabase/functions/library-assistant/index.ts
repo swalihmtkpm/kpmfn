@@ -62,22 +62,34 @@ const tools = [
   },
 ];
 
+// Sanitize a free-text query for safe use inside a PostgREST `or()` filter.
+// PostgREST splits on `,` and uses `()` and `*` as syntax; escaping prevents broken queries.
+function safeQ(input: unknown): string {
+  return String(input ?? '').trim().replace(/[,()*]/g, ' ').slice(0, 80);
+}
+
 async function execTool(name: string, args: any): Promise<unknown> {
-  const q = String(args?.query ?? '').trim();
+  const q = safeQ(args?.query);
   const lim = Math.min(Number(args?.limit ?? 10), 25);
   if (name === 'search_books') {
-    const { data } = await sb.from('books')
+    if (!q) return [];
+    const { data, error } = await sb.from('books')
       .select('id, title_ar, title_en, book_code, average_rating, ratings_count, status, authors(name_ar,name_en), publishers(name_ar,name_en), categories(name_ar,name_en)')
       .or(`title_ar.ilike.%${q}%,title_en.ilike.%${q}%,description_ar.ilike.%${q}%,description_en.ilike.%${q}%,book_code.ilike.%${q}%`)
       .limit(lim);
+    if (error) return { error: error.message };
     return data ?? [];
   }
   if (name === 'search_authors') {
-    const { data } = await sb.from('authors').select('id,name_ar,name_en,bio_ar,bio_en').or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`).limit(lim);
+    if (!q) return [];
+    const { data, error } = await sb.from('authors').select('id,name_ar,name_en,bio_ar,bio_en').or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`).limit(lim);
+    if (error) return { error: error.message };
     return data ?? [];
   }
   if (name === 'search_publishers') {
-    const { data } = await sb.from('publishers').select('id,name_ar,name_en').or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`).limit(lim);
+    if (!q) return [];
+    const { data, error } = await sb.from('publishers').select('id,name_ar,name_en').or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`).limit(lim);
+    if (error) return { error: error.message };
     return data ?? [];
   }
   if (name === 'list_categories') {
@@ -86,8 +98,9 @@ async function execTool(name: string, args: any): Promise<unknown> {
   }
   if (name === 'recommend_books') {
     let qb = sb.from('books').select('id,title_ar,title_en,average_rating,ratings_count,categories(name_ar,name_en)').order('average_rating', { ascending: false }).limit(lim || 10);
-    if (args?.category) {
-      const { data: cats } = await sb.from('categories').select('id').or(`name_ar.ilike.%${args.category}%,name_en.ilike.%${args.category}%`);
+    const cat = safeQ(args?.category);
+    if (cat) {
+      const { data: cats } = await sb.from('categories').select('id').or(`name_ar.ilike.%${cat}%,name_en.ilike.%${cat}%`);
       const ids = (cats ?? []).map((c) => c.id);
       if (ids.length) qb = qb.in('category_id', ids);
     }
