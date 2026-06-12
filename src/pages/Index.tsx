@@ -4,11 +4,11 @@ import Layout from '@/components/Layout';
 import BookGrid, { BookCard } from '@/components/BookGrid';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { signedCoverUrl } from '@/lib/storage';
+import { publicCoverUrl, publicAdUrl } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight, FolderOpen, BookOpen } from 'lucide-react';
 import { FullPageLoader } from '@/components/LogoSpinner';
 
 const PAGE_SIZE = 50;
@@ -29,6 +29,7 @@ type RawBook = {
   category_id: string | null;
   publisher_id: string | null;
 };
+type Ad = { id: string; title_ar: string | null; title_en: string | null; image_path: string | null; link_url: string | null };
 
 export default function Index() {
   const { t, lang } = useI18n();
@@ -45,34 +46,41 @@ export default function Index() {
   const [publishers, setPublishers] = useState<Map<string, Option>>(new Map());
 
   const [allBooks, setAllBooks] = useState<RawBook[] | null>(null);
-  const [covers, setCovers] = useState<Map<string, string | null>>(new Map());
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [adIdx, setAdIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const debounceRef = useRef<number | null>(null);
 
-  // Load lookups + all books once (catalog ≤5000)
   useEffect(() => {
     (async () => {
-      const [{ data: cats }, { data: auts }, { data: pubs }, { data: bks }] = await Promise.all([
+      const [{ data: cats }, { data: auts }, { data: pubs }, { data: bks }, { data: ad }] = await Promise.all([
         supabase.from('categories').select('id, name_ar, name_en').order('sort_order'),
         supabase.from('authors').select('id, name_ar, name_en'),
         supabase.from('publishers').select('id, name_ar, name_en'),
         supabase.from('books').select('id, si_number, title_ar, title_en, description_ar, description_en, book_code, cover_path, average_rating, ratings_count, author_id, category_id, publisher_id'),
+        supabase.from('advertisements').select('id, title_ar, title_en, image_path, link_url').eq('is_active', true).order('sort_order'),
       ]);
-
       const pick = (ar: string, en: string | null) => (lang === 'ar' ? ar : (en || ar));
       setCategories((cats ?? []).map((c) => ({ id: c.id, name: pick(c.name_ar, c.name_en) })));
       setAuthors(new Map((auts ?? []).map((a) => [a.id, { id: a.id, name: pick(a.name_ar, a.name_en) }])));
       setPublishers(new Map((pubs ?? []).map((p) => [p.id, { id: p.id, name: pick(p.name_ar, p.name_en) }])));
       setAllBooks((bks ?? []) as RawBook[]);
+      setAds(((ad ?? []) as Ad[]).filter((a) => a.image_path));
       setLoading(false);
     })();
   }, [lang]);
 
+  // Rotate ads
+  useEffect(() => {
+    if (ads.length < 2) return;
+    const id = window.setInterval(() => setAdIdx((i) => (i + 1) % ads.length), 5000);
+    return () => window.clearInterval(id);
+  }, [ads.length]);
+
   const authorOptions = useMemo(() => Array.from(authors.values()).sort((a, b) => a.name.localeCompare(b.name)), [authors]);
   const publisherOptions = useMemo(() => Array.from(publishers.values()).sort((a, b) => a.name.localeCompare(b.name)), [publishers]);
 
-  // Filter + sort
   const filteredSorted = useMemo(() => {
     if (!allBooks) return [];
     const q = query.trim().toLowerCase();
@@ -83,13 +91,10 @@ export default function Index() {
       if (!q) return true;
       const authorName = b.author_id ? authors.get(b.author_id)?.name ?? '' : '';
       const publisherName = b.publisher_id ? publishers.get(b.publisher_id)?.name ?? '' : '';
-      const hay = [
-        b.title_ar, b.title_en, b.description_ar, b.description_en,
-        b.book_code, authorName, publisherName,
-      ].filter(Boolean).join(' ').toLowerCase();
+      const hay = [b.title_ar, b.title_en, b.description_ar, b.description_en, b.book_code, authorName, publisherName]
+        .filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-
     result.sort((a, b) => {
       const ra = Number(a.average_rating ?? 0);
       const rb = Number(b.average_rating ?? 0);
@@ -101,7 +106,6 @@ export default function Index() {
       const tb = (lang === 'ar' ? b.title_ar : (b.title_en || b.title_ar)) || '';
       return ta.localeCompare(tb);
     });
-
     return result;
   }, [allBooks, query, categoryId, authorId, publisherId, authors, publishers, lang]);
 
@@ -109,24 +113,7 @@ export default function Index() {
   const safePage = Math.min(page, totalPages);
   const pageBooks = useMemo(() => filteredSorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE), [filteredSorted, safePage]);
 
-  // Resolve cover URLs for visible page
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const need = pageBooks.filter((b) => b.cover_path && !covers.has(b.id));
-      if (need.length === 0) return;
-      const entries = await Promise.all(need.map(async (b) => [b.id, await signedCoverUrl(b.cover_path)] as const));
-      if (cancelled) return;
-      setCovers((prev) => {
-        const next = new Map(prev);
-        for (const [id, url] of entries) next.set(id, url);
-        return next;
-      });
-    })();
-    return () => { cancelled = true; };
-  }, [pageBooks, covers]);
-
-  // Sync URL (debounced for query)
+  // Sync URL
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
@@ -142,10 +129,8 @@ export default function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, categoryId, authorId, publisherId, safePage]);
 
-  // Reset to page 1 when filters/query change
   useEffect(() => { setPage(1); }, [query, categoryId, authorId, publisherId]);
 
-  // Scroll position memory
   useEffect(() => {
     const stored = sessionStorage.getItem('catalog_scroll');
     if (stored && !loading) {
@@ -161,21 +146,25 @@ export default function Index() {
     id: b.id,
     title_ar: b.title_ar,
     title_en: b.title_en,
-    cover_url: covers.get(b.id) ?? null,
+    cover_url: publicCoverUrl(b.cover_path),
     average_rating: b.average_rating,
     ratings_count: b.ratings_count,
     author_name: b.author_id ? authors.get(b.author_id)?.name ?? null : null,
   }));
 
-  const clearFilters = () => {
-    setQuery(''); setCategoryId('all'); setAuthorId('all'); setPublisherId('all'); setPage(1);
-  };
+  const clearFilters = () => { setQuery(''); setCategoryId('all'); setAuthorId('all'); setPublisherId('all'); setPage(1); };
   const hasFilters = query || categoryId !== 'all' || authorId !== 'all' || publisherId !== 'all';
+  const gotoPage = (n: number) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  const gotoPage = (n: number) => {
-    setPage(n);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const activeAd = ads[adIdx];
+  const adUrl = publicAdUrl(activeAd?.image_path);
+  const adTitle = activeAd ? (lang === 'ar' ? activeAd.title_ar : (activeAd.title_en || activeAd.title_ar)) ?? '' : '';
+
+  const bookCountByCat = useMemo(() => {
+    const m = new Map<string, number>();
+    (allBooks ?? []).forEach((b) => { if (b.category_id) m.set(b.category_id, (m.get(b.category_id) ?? 0) + 1); });
+    return m;
+  }, [allBooks]);
 
   return (
     <Layout>
@@ -195,7 +184,62 @@ export default function Index() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 py-5 md:py-7">
+      {/* Ad banner */}
+      {activeAd && adUrl && (
+        <section className="max-w-6xl mx-auto px-4 pt-5">
+          <a
+            href={activeAd.link_url || '#'}
+            target={activeAd.link_url ? '_blank' : undefined}
+            rel="noreferrer"
+            className="block rounded-xl overflow-hidden border shadow-soft relative aspect-[16/6] md:aspect-[16/4] bg-accent"
+          >
+            <img key={activeAd.id} src={adUrl} alt={adTitle} className="w-full h-full object-cover" />
+            {adTitle && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-white p-3 text-sm font-semibold">
+                {adTitle}
+              </div>
+            )}
+            {ads.length > 1 && (
+              <div className="absolute bottom-2 end-2 flex gap-1">
+                {ads.map((_, i) => (
+                  <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === adIdx ? 'bg-white' : 'bg-white/40'}`} />
+                ))}
+              </div>
+            )}
+          </a>
+        </section>
+      )}
+
+      {/* Browse categories */}
+      <section id="categories" className="max-w-6xl mx-auto px-4 pt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <FolderOpen className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold">{t('browseCategories')}</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <button
+            onClick={() => { setCategoryId('all'); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }); }}
+            className={`p-3 rounded-xl border text-start transition ${categoryId === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent'}`}
+          >
+            <BookOpen className="w-4 h-4 mb-1" />
+            <div className="text-xs font-semibold truncate">{t('all')}</div>
+            <div className="text-[10px] opacity-70">{allBooks?.length ?? 0}</div>
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => { setCategoryId(c.id); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }); }}
+              className={`p-3 rounded-xl border text-start transition ${categoryId === c.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent'}`}
+            >
+              <FolderOpen className="w-4 h-4 mb-1" />
+              <div className="text-xs font-semibold truncate">{c.name}</div>
+              <div className="text-[10px] opacity-70">{bookCountByCat.get(c.id) ?? 0}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section id="catalog" className="max-w-6xl mx-auto px-4 py-5 md:py-7">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 md:gap-3 mb-4">
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger><SelectValue placeholder={t('category')} /></SelectTrigger>
