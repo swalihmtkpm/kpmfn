@@ -45,7 +45,7 @@ export default function LibraryAssistant() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button size="icon" className="fixed bottom-5 end-5 rounded-full w-14 h-14 shadow-elevated z-40" aria-label={t('openAssistant')}>
+        <Button size="icon" className="hidden md:flex fixed bottom-5 end-5 rounded-full w-14 h-14 shadow-elevated z-40" aria-label={t('openAssistant')}>
           <Sparkles className="w-6 h-6" />
         </Button>
       </SheetTrigger>
