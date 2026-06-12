@@ -182,6 +182,25 @@ export default function BooksManager() {
     XLSX.writeFile(wb, `catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const downloadTemplate = () => {
+    const headers = [{
+      book_code: 'BK-001',
+      title_ar: 'عنوان الكتاب',
+      title_en: 'Book title',
+      author: 'اسم المؤلف',
+      publisher: 'اسم الناشر',
+      category: 'اسم التصنيف',
+      volume: '1',
+      pages: 200,
+      description_ar: 'وصف قصير',
+      description_en: 'Short description',
+    }];
+    const ws = XLSX.utils.json_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'books-template.xlsx');
+  };
+
   const importXlsx = async (file: File) => {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf);
