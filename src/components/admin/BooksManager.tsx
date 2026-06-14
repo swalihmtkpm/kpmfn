@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Upload, Download, FileSpreadsheet, Image as ImageIcon, Clipboard } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,7 +22,6 @@ type Book = {
   title_ar: string;
   title_en: string | null;
   description_ar: string | null;
-  description_en: string | null;
   volume: string | null;
   pages: number | null;
   category_id: string | null;
@@ -32,10 +32,12 @@ type Book = {
 };
 
 const emptyBook: Partial<Book> = {
-  book_code: '', title_ar: '', title_en: '', description_ar: '', description_en: '',
+  book_code: '', title_ar: '', title_en: '', description_ar: '',
   volume: '', pages: null, category_id: null, author_id: null, publisher_id: null,
   cover_path: null, full_text: '',
 };
+
+type QuickAdd = { table: 'authors' | 'categories' | 'publishers'; field: 'author_id' | 'category_id' | 'publisher_id'; label: string } | null;
 
 export default function BooksManager() {
   const { t } = useI18n();
@@ -48,6 +50,10 @@ export default function BooksManager() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [quickAdd, setQuickAdd] = useState<QuickAdd>(null);
+  const [quickName, setQuickName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const xlsxRef = useRef<HTMLInputElement>(null);
 
@@ -78,7 +84,7 @@ export default function BooksManager() {
   };
 
   const uploadCoverIfAny = async (): Promise<string | null | undefined> => {
-    if (!coverFile) return undefined; // unchanged
+    if (!coverFile) return undefined;
     const ext = coverFile.name.split('.').pop() || 'png';
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from('book-covers').upload(path, coverFile, { upsert: false, contentType: coverFile.type });
@@ -99,7 +105,6 @@ export default function BooksManager() {
         title_ar: editing.title_ar,
         title_en: editing.title_en || null,
         description_ar: editing.description_ar || null,
-        description_en: editing.description_en || null,
         volume: editing.volume || null,
         pages: editing.pages ? Number(editing.pages) : null,
         category_id: editing.category_id || null,
@@ -133,6 +138,25 @@ export default function BooksManager() {
     if (b.cover_path) await supabase.storage.from('book-covers').remove([b.cover_path]);
     toast.success(t('deleted'));
     load();
+  };
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    const paths = (books ?? []).filter((b) => ids.includes(b.id) && b.cover_path).map((b) => b.cover_path!) as string[];
+    const { error } = await supabase.from('books').delete().in('id', ids);
+    if (error) { toast.error(error.message); return; }
+    if (paths.length) await supabase.storage.from('book-covers').remove(paths);
+    toast.success(t('deleted'));
+    setSelected(new Set());
+    setConfirmBulk(false);
+    load();
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
   };
 
   const onPickCover = (file: File | null) => {
@@ -174,7 +198,6 @@ export default function BooksManager() {
       volume: b.volume,
       pages: b.pages,
       description_ar: b.description_ar,
-      description_en: b.description_en,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -193,7 +216,6 @@ export default function BooksManager() {
       volume: '1',
       pages: 200,
       description_ar: 'وصف قصير',
-      description_en: 'Short description',
     }];
     const ws = XLSX.utils.json_to_sheet(headers);
     const wb = XLSX.utils.book_new();
@@ -215,7 +237,6 @@ export default function BooksManager() {
         title_ar: String(r.title_ar ?? r.title_en ?? ''),
         title_en: r.title_en ? String(r.title_en) : null,
         description_ar: r.description_ar ? String(r.description_ar) : null,
-        description_en: r.description_en ? String(r.description_en) : null,
         volume: r.volume ? String(r.volume) : null,
         pages: r.pages ? Number(r.pages) : null,
         category_id: r.category ? findId(cats, String(r.category)) : null,
@@ -229,12 +250,35 @@ export default function BooksManager() {
     load();
   };
 
+  const saveQuickAdd = async () => {
+    if (!quickAdd || !quickName.trim() || !editing) return;
+    const { data, error } = await supabase.from(quickAdd.table)
+      .insert({ name_ar: quickName.trim() })
+      .select('id, name_ar, name_en').single();
+    if (error || !data) return toast.error(error?.message ?? 'Error');
+    if (quickAdd.table === 'authors') setAuts((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
+    if (quickAdd.table === 'categories') setCats((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
+    if (quickAdd.table === 'publishers') setPubs((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
+    setEditing({ ...editing, [quickAdd.field]: (data as any).id });
+    toast.success(t('saved'));
+    setQuickAdd(null);
+    setQuickName('');
+  };
+
   if (!books) return <FullPageLoader />;
 
   const visible = books.filter((b) =>
     !query ||
     [b.title_ar, b.title_en, b.book_code].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())
   );
+  const visibleIds = visible.map((b) => b.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const toggleAllVisible = () => {
+    const next = new Set(selected);
+    if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id));
+    else visibleIds.forEach((id) => next.add(id));
+    setSelected(next);
+  };
 
   return (
     <div className="space-y-4">
@@ -255,11 +299,25 @@ export default function BooksManager() {
         </Button>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 p-2.5 rounded-lg border bg-warning/10 border-warning/30">
+          <span className="text-sm font-semibold text-foreground">{selected.size} {t('selected')}</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>{t('cancel')}</Button>
+          <Button size="sm" variant="destructive" className="gap-1.5" onClick={() => setConfirmBulk(true)}>
+            <Trash2 className="w-4 h-4" /> {t('deleteSelected')}
+          </Button>
+        </div>
+      )}
+
       <div className="border rounded-xl overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
+                <th className="p-3 w-10">
+                  <Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisible} aria-label={t('selectAll')} />
+                </th>
                 <th className="text-start p-3">SI</th>
                 <th className="text-start p-3">{t('bookCode')}</th>
                 <th className="text-start p-3">{t('title')}</th>
@@ -270,6 +328,9 @@ export default function BooksManager() {
             <tbody>
               {visible.map((b) => (
                 <tr key={b.id} className="border-t hover:bg-accent/40">
+                  <td className="p-3">
+                    <Checkbox checked={selected.has(b.id)} onCheckedChange={() => toggleSelect(b.id)} />
+                  </td>
                   <td className="p-3">{b.si_number ?? '—'}</td>
                   <td className="p-3">{b.book_code ?? '—'}</td>
                   <td className="p-3 font-medium">{b.title_ar}</td>
@@ -281,7 +342,7 @@ export default function BooksManager() {
                 </tr>
               ))}
               {visible.length === 0 && (
-                <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">—</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">—</td></tr>
               )}
             </tbody>
           </table>
@@ -299,37 +360,33 @@ export default function BooksManager() {
                 <Field label={t('volume')}><Input value={editing.volume ?? ''} onChange={(e) => setEditing({ ...editing, volume: e.target.value })} /></Field>
                 <Field label={t('titleAr')}><Input value={editing.title_ar ?? ''} onChange={(e) => setEditing({ ...editing, title_ar: e.target.value })} /></Field>
                 <Field label={t('titleEn')}><Input value={editing.title_en ?? ''} onChange={(e) => setEditing({ ...editing, title_en: e.target.value })} /></Field>
-                <Field label={t('category')}>
-                  <Select value={editing.category_id ?? 'none'} onValueChange={(v) => setEditing({ ...editing, category_id: v === 'none' ? null : v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">—</SelectItem>
-                      {cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name_ar}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label={t('author')}>
-                  <Select value={editing.author_id ?? 'none'} onValueChange={(v) => setEditing({ ...editing, author_id: v === 'none' ? null : v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">—</SelectItem>
-                      {auts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name_ar}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label={t('publisher')}>
-                  <Select value={editing.publisher_id ?? 'none'} onValueChange={(v) => setEditing({ ...editing, publisher_id: v === 'none' ? null : v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">—</SelectItem>
-                      {pubs.map((p) => <SelectItem key={p.id} value={p.id}>{p.name_ar}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
+
+                <LookupField
+                  label={t('category')}
+                  value={editing.category_id ?? null}
+                  options={cats}
+                  onChange={(v) => setEditing({ ...editing, category_id: v })}
+                  onAddNew={() => { setQuickAdd({ table: 'categories', field: 'category_id', label: t('category') }); setQuickName(''); }}
+                />
+                <LookupField
+                  label={t('author')}
+                  value={editing.author_id ?? null}
+                  options={auts}
+                  onChange={(v) => setEditing({ ...editing, author_id: v })}
+                  onAddNew={() => { setQuickAdd({ table: 'authors', field: 'author_id', label: t('author') }); setQuickName(''); }}
+                />
+                <LookupField
+                  label={t('publisher')}
+                  value={editing.publisher_id ?? null}
+                  options={pubs}
+                  onChange={(v) => setEditing({ ...editing, publisher_id: v })}
+                  onAddNew={() => { setQuickAdd({ table: 'publishers', field: 'publisher_id', label: t('publisher') }); setQuickName(''); }}
+                />
                 <Field label={t('pages')}><Input type="number" value={editing.pages ?? ''} onChange={(e) => setEditing({ ...editing, pages: e.target.value ? Number(e.target.value) : null })} /></Field>
               </div>
-              <Field label={t('descAr')}><Textarea rows={3} value={editing.description_ar ?? ''} onChange={(e) => setEditing({ ...editing, description_ar: e.target.value })} /></Field>
-              <Field label={t('descEn')}><Textarea rows={3} value={editing.description_en ?? ''} onChange={(e) => setEditing({ ...editing, description_en: e.target.value })} /></Field>
+              <Field label={t('descAr')}>
+                <Textarea rows={4} dir="rtl" value={editing.description_ar ?? ''} onChange={(e) => setEditing({ ...editing, description_ar: e.target.value })} />
+              </Field>
               <Field label={t('readFullText')}><Textarea rows={4} value={editing.full_text ?? ''} onChange={(e) => setEditing({ ...editing, full_text: e.target.value })} /></Field>
 
               <div>
@@ -354,6 +411,34 @@ export default function BooksManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quick-add taxonomy dialog */}
+      <Dialog open={!!quickAdd} onOpenChange={(o) => !o && setQuickAdd(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{quickAdd?.label} — {t('addNew')}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">{t('nameAr')}</Label>
+            <Input autoFocus dir="rtl" value={quickName} onChange={(e) => setQuickName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveQuickAdd(); }} />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setQuickAdd(null)}>{t('cancel')}</Button>
+            <Button onClick={saveQuickAdd} disabled={!quickName.trim()}>{t('save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm bulk delete */}
+      <Dialog open={confirmBulk} onOpenChange={setConfirmBulk}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{t('deleteSelected')}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('confirmBulkDelete').replace('{n}', String(selected.size))}</p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmBulk(false)}>{t('cancel')}</Button>
+            <Button variant="destructive" onClick={bulkDelete}>{t('delete')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -363,6 +448,34 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function LookupField({
+  label, value, options, onChange, onAddNew,
+}: {
+  label: string;
+  value: string | null;
+  options: Lookup[];
+  onChange: (v: string | null) => void;
+  onAddNew: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <div className="flex gap-1.5">
+        <Select value={value ?? 'none'} onValueChange={(v) => onChange(v === 'none' ? null : v)}>
+          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">—</SelectItem>
+            {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.name_ar}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button type="button" size="icon" variant="outline" onClick={onAddNew} aria-label="Add new">
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }
