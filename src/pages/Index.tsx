@@ -4,7 +4,7 @@ import Layout from '@/components/Layout';
 import BookGrid, { BookCard } from '@/components/BookGrid';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { publicCoverUrl, publicAdUrl } from '@/lib/storage';
+import { signedCoverUrls, signedAdUrl } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,7 +20,6 @@ type RawBook = {
   title_ar: string;
   title_en: string | null;
   description_ar: string | null;
-  description_en: string | null;
   book_code: string | null;
   cover_path: string | null;
   average_rating: number | null;
@@ -46,7 +45,9 @@ export default function Index() {
   const [publishers, setPublishers] = useState<Map<string, Option>>(new Map());
 
   const [allBooks, setAllBooks] = useState<RawBook[] | null>(null);
+  const [coverUrls, setCoverUrls] = useState<Map<string, string>>(new Map());
   const [ads, setAds] = useState<Ad[]>([]);
+  const [adUrl, setAdUrl] = useState<string | null>(null);
   const [adIdx, setAdIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -58,25 +59,33 @@ export default function Index() {
         supabase.from('categories').select('id, name_ar, name_en').order('sort_order'),
         supabase.from('authors').select('id, name_ar, name_en'),
         supabase.from('publishers').select('id, name_ar, name_en'),
-        supabase.from('books').select('id, si_number, title_ar, title_en, description_ar, description_en, book_code, cover_path, average_rating, ratings_count, author_id, category_id, publisher_id'),
+        supabase.from('books').select('id, si_number, title_ar, title_en, description_ar, book_code, cover_path, average_rating, ratings_count, author_id, category_id, publisher_id'),
         supabase.from('advertisements').select('id, title_ar, title_en, image_path, link_url').eq('is_active', true).order('sort_order'),
       ]);
       const pick = (ar: string, en: string | null) => (lang === 'ar' ? ar : (en || ar));
       setCategories((cats ?? []).map((c) => ({ id: c.id, name: pick(c.name_ar, c.name_en) })));
       setAuthors(new Map((auts ?? []).map((a) => [a.id, { id: a.id, name: pick(a.name_ar, a.name_en) }])));
       setPublishers(new Map((pubs ?? []).map((p) => [p.id, { id: p.id, name: pick(p.name_ar, p.name_en) }])));
-      setAllBooks((bks ?? []) as RawBook[]);
+      const books = (bks ?? []) as RawBook[];
+      setAllBooks(books);
+      const paths = books.map((b) => b.cover_path).filter(Boolean) as string[];
+      setCoverUrls(await signedCoverUrls(paths));
       setAds(((ad ?? []) as Ad[]).filter((a) => a.image_path));
       setLoading(false);
     })();
   }, [lang]);
 
-  // Rotate ads
   useEffect(() => {
     if (ads.length < 2) return;
     const id = window.setInterval(() => setAdIdx((i) => (i + 1) % ads.length), 5000);
     return () => window.clearInterval(id);
   }, [ads.length]);
+
+  useEffect(() => {
+    const active = ads[adIdx];
+    if (!active?.image_path) { setAdUrl(null); return; }
+    signedAdUrl(active.image_path).then(setAdUrl);
+  }, [ads, adIdx]);
 
   const authorOptions = useMemo(() => Array.from(authors.values()).sort((a, b) => a.name.localeCompare(b.name)), [authors]);
   const publisherOptions = useMemo(() => Array.from(publishers.values()).sort((a, b) => a.name.localeCompare(b.name)), [publishers]);
@@ -91,7 +100,7 @@ export default function Index() {
       if (!q) return true;
       const authorName = b.author_id ? authors.get(b.author_id)?.name ?? '' : '';
       const publisherName = b.publisher_id ? publishers.get(b.publisher_id)?.name ?? '' : '';
-      const hay = [b.title_ar, b.title_en, b.description_ar, b.description_en, b.book_code, authorName, publisherName]
+      const hay = [b.title_ar, b.title_en, b.description_ar, b.book_code, authorName, publisherName]
         .filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
@@ -113,7 +122,6 @@ export default function Index() {
   const safePage = Math.min(page, totalPages);
   const pageBooks = useMemo(() => filteredSorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE), [filteredSorted, safePage]);
 
-  // Sync URL
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
@@ -146,7 +154,7 @@ export default function Index() {
     id: b.id,
     title_ar: b.title_ar,
     title_en: b.title_en,
-    cover_url: publicCoverUrl(b.cover_path),
+    cover_url: b.cover_path ? coverUrls.get(b.cover_path) ?? null : null,
     average_rating: b.average_rating,
     ratings_count: b.ratings_count,
     author_name: b.author_id ? authors.get(b.author_id)?.name ?? null : null,
@@ -157,7 +165,6 @@ export default function Index() {
   const gotoPage = (n: number) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const activeAd = ads[adIdx];
-  const adUrl = publicAdUrl(activeAd?.image_path);
   const adTitle = activeAd ? (lang === 'ar' ? activeAd.title_ar : (activeAd.title_en || activeAd.title_ar)) ?? '' : '';
 
   const bookCountByCat = useMemo(() => {
@@ -184,7 +191,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Ad banner */}
       {activeAd && adUrl && (
         <section className="max-w-6xl mx-auto px-4 pt-5">
           <a
@@ -210,7 +216,6 @@ export default function Index() {
         </section>
       )}
 
-      {/* Browse categories */}
       <section id="categories" className="max-w-6xl mx-auto px-4 pt-6">
         <div className="flex items-center gap-2 mb-3">
           <FolderOpen className="w-5 h-5 text-primary" />
