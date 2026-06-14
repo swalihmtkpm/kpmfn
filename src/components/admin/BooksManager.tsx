@@ -253,7 +253,7 @@ export default function BooksManager() {
   const saveQuickAdd = async () => {
     if (!quickAdd || !quickName.trim() || !editing) return;
     const { data, error } = await supabase.from(quickAdd.table)
-      .insert({ name_ar: quickName.trim() })
+      .insert({ name_ar: quickName.trim(), name_en: '' } as any)
       .select('id, name_ar, name_en').single();
     if (error || !data) return toast.error(error?.message ?? 'Error');
     if (quickAdd.table === 'authors') setAuts((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
