@@ -13,7 +13,6 @@ import NotFound from './pages/NotFound';
 
 import IntroSplash from './components/IntroSplash';
 import ForcePasswordChange from './components/ForcePasswordChange';
-import LibraryAssistant from './components/LibraryAssistant';
 import { LanguageProvider } from './lib/i18n';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -26,20 +25,23 @@ function AppShell() {
   );
   useEffect(() => { if (introDone) sessionStorage.setItem('imthiyaz_intro', '1'); }, [introDone]);
 
+  // Apply persisted theme on boot
+  useEffect(() => {
+    const saved = localStorage.getItem('imthiyaz_theme');
+    if (saved === 'dark') document.documentElement.classList.add('dark');
+  }, []);
+
   if (!introDone) return <IntroSplash onDone={() => setIntroDone(true)} />;
   if (!loading && profile?.must_change_password) return <ForcePasswordChange />;
 
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/book/:id" element={<BookDetails />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <LibraryAssistant />
-    </>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/book/:id" element={<BookDetails />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<Admin />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
