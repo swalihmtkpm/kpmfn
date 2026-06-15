@@ -98,17 +98,6 @@ export default function SettingsPanel() {
         </div>
       </Section>
 
-      <Section icon={BookOpen} title={t('libraryInfo')} className="md:col-span-2">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div><Label className="text-xs">{t('libraryName')}</Label><Input value={info.name ?? ''} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
-          <div><Label className="text-xs">{t('libraryPhone')}</Label><Input value={info.phone ?? ''} onChange={(e) => setInfo({ ...info, phone: e.target.value })} /></div>
-          <div><Label className="text-xs">{t('libraryEmail')}</Label><Input value={info.email ?? ''} onChange={(e) => setInfo({ ...info, email: e.target.value })} /></div>
-          <div><Label className="text-xs">{t('libraryAddress')}</Label><Input value={info.address ?? ''} onChange={(e) => setInfo({ ...info, address: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label className="text-xs">{t('aboutAr')}</Label><Textarea rows={3} value={info.about_ar ?? ''} onChange={(e) => setInfo({ ...info, about_ar: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label className="text-xs">{t('aboutEn')}</Label><Textarea rows={3} value={info.about_en ?? ''} onChange={(e) => setInfo({ ...info, about_en: e.target.value })} /></div>
-        </div>
-        <Button onClick={saveInfo} className="mt-3">{t('save')}</Button>
-      </Section>
 
       <Section icon={Database} title={t('backupRestore')} className="md:col-span-2">
         <div className="flex flex-wrap gap-2">
