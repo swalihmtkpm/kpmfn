@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
-import logoAsset from '@/assets/library-logo.png.asset.json';
 
 export default function IntroSplash({ onDone }: { onDone: () => void }) {
   const { t } = useI18n();
@@ -17,7 +16,7 @@ export default function IntroSplash({ onDone }: { onDone: () => void }) {
         style={{ animation: 'logo-pop 0.9s cubic-bezier(.2,.8,.2,1) both' }}
       >
         <img
-          src={logoAsset.url}
+          src="/library-logo.png"
           alt={t('appName')}
           className="animate-spin-ccw"
           style={{ width: 140, height: 140 }}

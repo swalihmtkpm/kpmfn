@@ -9,6 +9,8 @@ import Index from './pages/Index';
 import BookDetails from './pages/BookDetails';
 import AdminLogin from './pages/AdminLogin';
 import Admin from './pages/Admin';
+import Settings from './pages/Settings';
+import Browse from './pages/Browse';
 import NotFound from './pages/NotFound';
 
 import IntroSplash from './components/IntroSplash';
@@ -37,6 +39,8 @@ function AppShell() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/browse" element={<Browse />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/book/:id" element={<BookDetails />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<Admin />} />

@@ -183,9 +183,9 @@ const dict = {
     faqBody: `س: كيف أستعير كتاباً؟\nج: افتح صفحة الكتاب واضغط على "طلب استعارة".\n\nس: كم مدة الاستعارة؟\nج: تحدد عند تقديم الطلب وعادة من 7 إلى 14 يوماً.\n\nس: هل يمكنني قراءة الكتاب رقمياً؟\nج: نعم، إذا توفر نص الكتاب يظهر زر "قراءة الكتاب".\n\nس: كيف أتواصل مع الإدارة؟\nج: من خلال خيار "تواصل معنا" في الإعدادات.`,
   },
   en: {
-    appName: 'Makthabathul Imthiyaz',
-    appNameShort: 'Imthiyaz',
-    tagline: 'A beacon of knowledge and reading',
+    appName: 'مكتبة الامتياز',
+    appNameShort: 'الامتياز',
+    tagline: 'منارة المعرفة والقراءة',
     loading: 'Loading...',
     home: 'Home',
     books: 'Books',

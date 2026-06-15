@@ -37,7 +37,7 @@ const emptyBook: Partial<Book> = {
   cover_path: null, full_text: '',
 };
 
-type QuickAdd = { table: 'authors' | 'categories' | 'publishers'; field: 'author_id' | 'category_id' | 'publisher_id'; label: string } | null;
+
 
 export default function BooksManager() {
   const { t } = useI18n();
@@ -52,8 +52,6 @@ export default function BooksManager() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmBulk, setConfirmBulk] = useState(false);
-  const [quickAdd, setQuickAdd] = useState<QuickAdd>(null);
-  const [quickName, setQuickName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const xlsxRef = useRef<HTMLInputElement>(null);
 
@@ -209,7 +207,6 @@ export default function BooksManager() {
     const headers = [{
       book_code: 'BK-001',
       title_ar: 'عنوان الكتاب',
-      title_en: 'Book title',
       author: 'اسم المؤلف',
       publisher: 'اسم الناشر',
       category: 'اسم التصنيف',
@@ -250,20 +247,6 @@ export default function BooksManager() {
     load();
   };
 
-  const saveQuickAdd = async () => {
-    if (!quickAdd || !quickName.trim() || !editing) return;
-    const { data, error } = await supabase.from(quickAdd.table)
-      .insert({ name_ar: quickName.trim(), name_en: '' } as any)
-      .select('id, name_ar, name_en').single();
-    if (error || !data) return toast.error(error?.message ?? 'Error');
-    if (quickAdd.table === 'authors') setAuts((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
-    if (quickAdd.table === 'categories') setCats((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
-    if (quickAdd.table === 'publishers') setPubs((x) => [...x, data as Lookup].sort((a, b) => a.name_ar.localeCompare(b.name_ar)));
-    setEditing({ ...editing, [quickAdd.field]: (data as any).id });
-    toast.success(t('saved'));
-    setQuickAdd(null);
-    setQuickName('');
-  };
 
   if (!books) return <FullPageLoader />;
 
@@ -366,21 +349,18 @@ export default function BooksManager() {
                   value={editing.category_id ?? null}
                   options={cats}
                   onChange={(v) => setEditing({ ...editing, category_id: v })}
-                  onAddNew={() => { setQuickAdd({ table: 'categories', field: 'category_id', label: t('category') }); setQuickName(''); }}
                 />
                 <LookupField
                   label={t('author')}
                   value={editing.author_id ?? null}
                   options={auts}
                   onChange={(v) => setEditing({ ...editing, author_id: v })}
-                  onAddNew={() => { setQuickAdd({ table: 'authors', field: 'author_id', label: t('author') }); setQuickName(''); }}
                 />
                 <LookupField
                   label={t('publisher')}
                   value={editing.publisher_id ?? null}
                   options={pubs}
                   onChange={(v) => setEditing({ ...editing, publisher_id: v })}
-                  onAddNew={() => { setQuickAdd({ table: 'publishers', field: 'publisher_id', label: t('publisher') }); setQuickName(''); }}
                 />
                 <Field label={t('pages')}><Input type="number" value={editing.pages ?? ''} onChange={(e) => setEditing({ ...editing, pages: e.target.value ? Number(e.target.value) : null })} /></Field>
               </div>
@@ -412,22 +392,6 @@ export default function BooksManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Quick-add taxonomy dialog */}
-      <Dialog open={!!quickAdd} onOpenChange={(o) => !o && setQuickAdd(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{quickAdd?.label} — {t('addNew')}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-xs">{t('nameAr')}</Label>
-            <Input autoFocus dir="rtl" value={quickName} onChange={(e) => setQuickName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveQuickAdd(); }} />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setQuickAdd(null)}>{t('cancel')}</Button>
-            <Button onClick={saveQuickAdd} disabled={!quickName.trim()}>{t('save')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Confirm bulk delete */}
       <Dialog open={confirmBulk} onOpenChange={setConfirmBulk}>
         <DialogContent className="max-w-sm">
@@ -453,29 +417,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function LookupField({
-  label, value, options, onChange, onAddNew,
+  label, value, options, onChange,
 }: {
   label: string;
   value: string | null;
   options: Lookup[];
   onChange: (v: string | null) => void;
-  onAddNew: () => void;
 }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <div className="flex gap-1.5">
-        <Select value={value ?? 'none'} onValueChange={(v) => onChange(v === 'none' ? null : v)}>
-          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">—</SelectItem>
-            {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.name_ar}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Button type="button" size="icon" variant="outline" onClick={onAddNew} aria-label="Add new">
-          <Plus className="w-4 h-4" />
-        </Button>
-      </div>
+      <Select value={value ?? 'none'} onValueChange={(v) => onChange(v === 'none' ? null : v)}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">—</SelectItem>
+          {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.name_ar}</SelectItem>)}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
