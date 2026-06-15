@@ -1,5 +1,3 @@
-import logoAsset from '@/assets/library-logo.png.asset.json';
-
 type Props = { size?: number; className?: string };
 
 /**
@@ -8,7 +6,7 @@ type Props = { size?: number; className?: string };
 export default function LogoSpinner({ size = 56, className = '' }: Props) {
   return (
     <img
-      src={logoAsset.url}
+      src="/library-logo.png"
       alt="loading"
       width={size}
       height={size}

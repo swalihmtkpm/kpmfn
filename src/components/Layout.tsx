@@ -1,14 +1,9 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Globe, LogOut, ShieldCheck, Settings as SettingsIcon, BookOpen, FolderOpen, Info, Phone, Mail, MapPin, Moon, Sun, FileText, HelpCircle, MessageCircle } from 'lucide-react';
-import logoAsset from '@/assets/library-logo.png.asset.json';
+import { LogOut, ShieldCheck, Settings as SettingsIcon, BookOpen, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 type Info = {
   name?: string; address?: string; phone?: string; email?: string;
