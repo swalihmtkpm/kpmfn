@@ -10,7 +10,7 @@ import { Plus, Pencil, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 
-type Status = 'draft' | 'published' | 'archived';
+type Status = 'published' | 'unpublished';
 type Ad = {
   id: string;
   title_ar: string | null;
@@ -36,8 +36,7 @@ export default function AdsManager() {
   const [previews, setPreviews] = useState<Map<string, string>>(new Map());
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const computeStatus = (a: Ad): Status =>
-    a.is_active ? 'published' : (a.image_path ? 'archived' : 'draft');
+  const computeStatus = (a: Ad): Status => (a.is_active ? 'published' : 'unpublished');
 
   const load = async () => {
     const { data } = await supabase.from('advertisements').select('*').order('sort_order', { ascending: true });
@@ -55,7 +54,7 @@ export default function AdsManager() {
 
   const activeCount = ads.filter((a) => a.is_active).length;
 
-  const openNew = () => { setEditing({ status: 'draft', is_active: false }); setImgFile(null); setImgPreview(null); };
+  const openNew = () => { setEditing({ status: 'published', is_active: true }); setImgFile(null); setImgPreview(null); };
   const openEdit = async (a: Ad) => {
     setEditing({ ...a, status: computeStatus(a) });
     setImgFile(null);
@@ -64,7 +63,7 @@ export default function AdsManager() {
 
   const save = async () => {
     if (!editing) return;
-    const status = editing.status ?? 'draft';
+    const status = editing.status ?? 'published';
     if (status === 'published' && activeCount >= MAX_ACTIVE && !(editing.id && ads.find((a) => a.id === editing.id)?.is_active)) {
       toast.error(t('maxAds'));
       return;
@@ -127,7 +126,7 @@ export default function AdsManager() {
               <div className="p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold truncate">{a.title_ar || a.title_en || '—'}</p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s === 'published' ? 'bg-success/15 text-success' : s === 'archived' ? 'bg-muted text-muted-foreground' : 'bg-warning/15 text-warning'}`}>{t(s)}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s === 'published' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'}`}>{t(s)}</span>
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button size="icon" variant="ghost" onClick={() => openEdit(a)}><Pencil className="w-4 h-4" /></Button>
@@ -160,12 +159,11 @@ export default function AdsManager() {
               <div><Label className="text-xs">{t('descAr')}</Label><Textarea rows={2} value={editing.link_url ?? ''} onChange={(e) => setEditing({ ...editing, link_url: e.target.value })} /></div>
               <div>
                 <Label className="text-xs">{t('status')}</Label>
-                <Select value={editing.status ?? 'draft'} onValueChange={(v) => setEditing({ ...editing, status: v as Status })}>
+                <Select value={editing.status ?? 'published'} onValueChange={(v) => setEditing({ ...editing, status: v as Status })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">{t('draft')}</SelectItem>
                     <SelectItem value="published">{t('published')}</SelectItem>
-                    <SelectItem value="archived">{t('archived')}</SelectItem>
+                    <SelectItem value="unpublished">{t('unpublished')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
