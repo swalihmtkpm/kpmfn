@@ -23,12 +23,13 @@ export default function IntroSplash({ onDone }: { onDone: () => void }) {
           draggable={false}
         />
       </div>
-      <h1
-        className="mt-6 text-3xl md:text-4xl font-extrabold tracking-tight text-primary"
+      <img
+        src="/library-name.png"
+        alt={t('appName')}
+        className="mt-6 w-[70%] max-w-xs object-contain logo-adaptive"
         style={{ animation: 'logo-pop 1.1s 0.25s cubic-bezier(.2,.8,.2,1) both' }}
-      >
-        {t('appName')}
-      </h1>
+        draggable={false}
+      />
       <p
         className="mt-2 text-sm text-muted-foreground"
         style={{ animation: 'logo-pop 1.1s 0.5s cubic-bezier(.2,.8,.2,1) both' }}
