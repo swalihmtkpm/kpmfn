@@ -120,7 +120,27 @@ export default function SettingsPage() {
                     <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" /> <span>{info.address}</span>
                   </div>
                 )}
+                {(info.helpers ?? []).filter((h) => h?.name || h?.phone).length > 0 && (
+                  <div className="pt-2">
+                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-muted-foreground">
+                      <Users className="w-4 h-4 text-primary" /> {t('helpers')}
+                    </div>
+                    <div className="space-y-2">
+                      {(info.helpers ?? []).filter((h) => h?.name || h?.phone).map((h, i) => (
+                        <a
+                          key={i}
+                          href={h.phone ? `tel:${h.phone}` : undefined}
+                          className="flex items-center justify-between gap-2 p-3 rounded-lg border hover:bg-accent"
+                        >
+                          <span className="font-medium">{h.name}</span>
+                          <span className="text-muted-foreground text-xs">{h.phone}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
             )}
           </DialogContent>
         </Dialog>
