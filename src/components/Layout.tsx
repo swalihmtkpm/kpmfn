@@ -34,12 +34,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
           <button onClick={handleLogoTap} className="flex items-center gap-2 group select-none" aria-label="logo">
-            <div className="w-11 h-11 rounded-xl bg-white border flex items-center justify-center shadow-soft group-active:scale-95 transition overflow-hidden">
-              <img src="/library-logo.png" alt="" className="w-9 h-9 object-contain" draggable={false} />
+            <div className="w-11 h-11 rounded-xl bg-transparent flex items-center justify-center group-active:scale-95 transition overflow-hidden">
+              <img src="/library-logo.png" alt="" className="w-10 h-10 object-contain logo-adaptive" draggable={false} />
             </div>
             <div className="leading-tight text-start">
-              <div className="font-extrabold text-foreground text-base md:text-lg">{t('appName')}</div>
-              <div className="text-[11px] text-muted-foreground hidden sm:block">{t('tagline')}</div>
+              <img src="/library-name.png" alt={t('appName')} className="h-6 md:h-7 object-contain logo-adaptive" draggable={false} />
+              <div className="text-[11px] text-muted-foreground hidden sm:block mt-0.5">{t('tagline')}</div>
             </div>
           </button>
 
