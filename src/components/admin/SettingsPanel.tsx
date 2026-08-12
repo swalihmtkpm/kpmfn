@@ -7,10 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
-import { Download, Upload, KeyRound, Globe2, BookOpen, Database } from 'lucide-react';
+import { Download, Upload, KeyRound, Globe2, BookOpen, Database, Users, Plus, Trash2 } from 'lucide-react';
 
 const INFO_KEY = 'library_info';
 const BACKUP_TABLES = ['categories', 'authors', 'publishers', 'books', 'advertisements', 'library_settings'] as const;
+
+export type Helper = { name: string; phone: string };
 
 type Info = {
   name?: string;
@@ -19,6 +21,7 @@ type Info = {
   email?: string;
   about_ar?: string;
   about_en?: string;
+  helpers?: Helper[];
 };
 
 export default function SettingsPanel() {
