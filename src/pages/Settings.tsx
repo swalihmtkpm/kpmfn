@@ -3,14 +3,15 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Moon, Sun, FileText, HelpCircle, MessageCircle, Phone, Mail, Info as InfoIcon, MapPin } from 'lucide-react';
+import { Globe, Moon, Sun, FileText, HelpCircle, MessageCircle, Phone, Mail, Info as InfoIcon, MapPin, Users } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 
 const CONTACT_PHONE = '9037339492';
 const CONTACT_EMAIL = 'mswalihkpm@gmail.com';
 
-type Info = { name?: string; address?: string; about_ar?: string; about_en?: string };
+type Helper = { name?: string; phone?: string };
+type Info = { name?: string; address?: string; about_ar?: string; about_en?: string; helpers?: Helper[] };
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useI18n();
