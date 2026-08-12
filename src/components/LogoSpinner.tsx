@@ -10,7 +10,7 @@ export default function LogoSpinner({ size = 56, className = '' }: Props) {
       alt="loading"
       width={size}
       height={size}
-      className={`animate-spin-ccw select-none ${className}`}
+      className={`animate-spin-cw logo-adaptive select-none ${className}`}
       style={{ width: size, height: size }}
       draggable={false}
     />

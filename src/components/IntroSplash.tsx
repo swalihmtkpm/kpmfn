@@ -18,7 +18,7 @@ export default function IntroSplash({ onDone }: { onDone: () => void }) {
         <img
           src="/library-logo.png"
           alt={t('appName')}
-          className="animate-spin-ccw"
+          className="animate-spin-cw logo-adaptive"
           style={{ width: 140, height: 140 }}
           draggable={false}
         />

@@ -42,6 +42,9 @@
     --input: 220 25% 90%;
     --ring: 220 75% 25%;
 
+    --brand: 259 42% 49%;
+    --brand-foreground: 0 0% 100%;
+
     --radius: 0.75rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(220 80% 12%) 0%, hsl(220 70% 28%) 100%);
@@ -82,6 +85,9 @@
     --border: 220 25% 22%;
     --input: 220 25% 20%;
     --ring: 220 70% 55%;
+
+    --brand: 259 52% 62%;
+    --brand-foreground: 0 0% 100%;
   }
 }
 
@@ -119,11 +125,15 @@
   60% { transform: scale(1.08); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-@keyframes spin-ccw {
+@keyframes spin-cw {
   from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+  to { transform: rotate(360deg); }
 }
-.animate-spin-ccw { animation: spin-ccw 2.4s linear infinite; transform-origin: 50% 50%; }
+.animate-spin-cw { animation: spin-cw 2s linear infinite; transform-origin: 50% 50%; }
+
+/* Logo turns white in dark mode */
+.logo-adaptive { transition: filter 0.2s ease; }
+.dark .logo-adaptive { filter: brightness(0) invert(1); }
 
 @keyframes shine {
   0% { background-position: -200% 0; }
