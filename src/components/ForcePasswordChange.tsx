@@ -22,7 +22,10 @@ export default function ForcePasswordChange() {
     const { error } = await changePassword(pw);
     setLoading(false);
     if (error) toast({ title: error, variant: 'destructive' });
-    else toast({ title: t('passwordChanged') });
+    else {
+      toast({ title: t('passwordChanged') });
+      window.location.replace('/admin');
+    }
   };
 
   return (
