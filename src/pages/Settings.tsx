@@ -3,14 +3,15 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Moon, Sun, FileText, HelpCircle, MessageCircle, Phone, Mail, Info as InfoIcon, MapPin } from 'lucide-react';
+import { Globe, Moon, Sun, FileText, HelpCircle, MessageCircle, Phone, Mail, Info as InfoIcon, MapPin, Users } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 
 const CONTACT_PHONE = '9037339492';
 const CONTACT_EMAIL = 'mswalihkpm@gmail.com';
 
-type Info = { name?: string; address?: string; about_ar?: string; about_en?: string };
+type Helper = { name?: string; phone?: string };
+type Info = { name?: string; address?: string; about_ar?: string; about_en?: string; helpers?: Helper[] };
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useI18n();
@@ -119,7 +120,27 @@ export default function SettingsPage() {
                     <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" /> <span>{info.address}</span>
                   </div>
                 )}
+                {(info.helpers ?? []).filter((h) => h?.name || h?.phone).length > 0 && (
+                  <div className="pt-2">
+                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-muted-foreground">
+                      <Users className="w-4 h-4 text-primary" /> {t('helpers')}
+                    </div>
+                    <div className="space-y-2">
+                      {(info.helpers ?? []).filter((h) => h?.name || h?.phone).map((h, i) => (
+                        <a
+                          key={i}
+                          href={h.phone ? `tel:${h.phone}` : undefined}
+                          className="flex items-center justify-between gap-2 p-3 rounded-lg border hover:bg-accent"
+                        >
+                          <span className="font-medium">{h.name}</span>
+                          <span className="text-muted-foreground text-xs">{h.phone}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
             )}
           </DialogContent>
         </Dialog>

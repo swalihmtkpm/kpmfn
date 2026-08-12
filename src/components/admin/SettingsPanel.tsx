@@ -7,10 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
-import { Download, Upload, KeyRound, Globe2, BookOpen, Database } from 'lucide-react';
+import { Download, Upload, KeyRound, Globe2, BookOpen, Database, Users, Plus, Trash2 } from 'lucide-react';
 
 const INFO_KEY = 'library_info';
 const BACKUP_TABLES = ['categories', 'authors', 'publishers', 'books', 'advertisements', 'library_settings'] as const;
+
+export type Helper = { name: string; phone: string };
 
 type Info = {
   name?: string;
@@ -19,6 +21,7 @@ type Info = {
   email?: string;
   about_ar?: string;
   about_en?: string;
+  helpers?: Helper[];
 };
 
 export default function SettingsPanel() {
@@ -95,6 +98,54 @@ export default function SettingsPanel() {
         <div className="flex gap-2">
           <Button variant={lang === 'ar' ? 'default' : 'outline'} onClick={() => setLang('ar')}>العربية</Button>
           <Button variant={lang === 'en' ? 'default' : 'outline'} onClick={() => setLang('en')}>English</Button>
+        </div>
+      </Section>
+
+      <Section icon={BookOpen} title={t('libraryInfo')}>
+        <Label className="text-xs">{t('name')}</Label>
+        <Input value={info.name ?? ''} onChange={(e) => setInfo({ ...info, name: e.target.value })} />
+        <Label className="text-xs mt-2">{t('address')}</Label>
+        <Textarea value={info.address ?? ''} onChange={(e) => setInfo({ ...info, address: e.target.value })} rows={2} />
+        <Button onClick={saveInfo} className="mt-3">{t('save')}</Button>
+      </Section>
+
+      <Section icon={Users} title={t('helpers')}>
+        <div className="space-y-2">
+          {(info.helpers ?? []).map((h, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <Input
+                placeholder={t('helperName')}
+                value={h.name}
+                onChange={(e) => {
+                  const helpers = [...(info.helpers ?? [])];
+                  helpers[i] = { ...helpers[i], name: e.target.value };
+                  setInfo({ ...info, helpers });
+                }}
+              />
+              <Input
+                placeholder={t('helperPhone')}
+                value={h.phone}
+                onChange={(e) => {
+                  const helpers = [...(info.helpers ?? [])];
+                  helpers[i] = { ...helpers[i], phone: e.target.value };
+                  setInfo({ ...info, helpers });
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setInfo({ ...info, helpers: (info.helpers ?? []).filter((_, j) => j !== i) })}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-3">
+          <Button variant="outline" className="gap-1.5" onClick={() => setInfo({ ...info, helpers: [...(info.helpers ?? []), { name: '', phone: '' }] })}>
+            <Plus className="w-4 h-4" />{t('addHelper')}
+          </Button>
+          <Button onClick={saveInfo}>{t('save')}</Button>
         </div>
       </Section>
 

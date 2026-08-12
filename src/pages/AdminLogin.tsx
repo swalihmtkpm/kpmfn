@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,10 @@ const usernameToEmail = (u: string) => `${u.trim().toLowerCase()}@${ADMIN_EMAIL_
 
 export default function AdminLogin() {
   const { t } = useI18n();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, isAdmin } = useAuth();
   const navigate = useNavigate();
+  // Already signed in as admin? Go straight to the dashboard.
+  useEffect(() => { if (isAdmin) navigate('/admin', { replace: true }); }, [isAdmin, navigate]);
   const [username, setUsername] = useState('msoekutb');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,7 @@ export default function AdminLogin() {
       return;
     }
     await refreshProfile();
-    navigate('/admin');
+    navigate('/admin', { replace: true });
   };
 
   return (
