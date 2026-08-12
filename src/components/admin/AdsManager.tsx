@@ -22,8 +22,6 @@ type Ad = {
   sort_order: number | null;
 };
 
-// We map status -> is_active. Stored status uses a JSON in link_url-less way: we use `link_url` for url and a virtual `status` derived from is_active + archived flag stored in title. To keep schema-compatible, treat: published = is_active true; archived = is_active false AND has cover; draft = is_active false AND no cover. Simpler: use a "status" column via link_url annotation. We'll use is_active + a prefix in link_url is fragile.
-// Simpler: status === is_active ? 'published' : 'draft'. Archived = ends_at < now. We compute and update accordingly.
 
 const MAX_ACTIVE = 10;
 
