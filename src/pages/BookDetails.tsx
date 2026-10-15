@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { signedCoverUrl } from '@/lib/storage';
@@ -11,17 +12,24 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { BookOpen, ArrowLeft, ArrowRight, BookMarked } from 'lucide-react';
+import { BookOpen, ArrowLeft, ArrowRight, BookMarked, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { FullPageLoader } from '@/components/LogoSpinner';
 
 type Detail = {
-  id: string; si_number: number | null; book_code: string | null;
-  title_ar: string; title_en: string | null;
+  id: string;
+  si_number: number | null;
+  book_code: string | null;
+  title_ar: string;
+  title_en: string | null;
   description_ar: string | null;
-  volume: string | null; pages: number | null;
-  cover_path: string | null; full_text: string | null; status: string;
-  average_rating: number | null; ratings_count: number | null;
+  volume: string | null;
+  pages: number | null;
+  cover_path: string | null;
+  full_text: string | null;
+  status: string;
+  average_rating: number | null;
+  ratings_count: number | null;
   authors: { name_ar: string; name_en: string } | null;
   publishers: { name_ar: string; name_en: string } | null;
   categories: { name_ar: string; name_en: string } | null;
@@ -33,6 +41,7 @@ type ActiveBorrow = { borrower_name: string | null; due_at: string | null };
 export default function BookDetails() {
   const { id } = useParams();
   const { t, lang, dir } = useI18n();
+  const shouldReduceMotion = useReducedMotion();
 
   const [book, setBook] = useState<Detail | null>(null);
   const [cover, setCover] = useState<string | null>(null);
@@ -105,33 +114,73 @@ export default function BookDetails() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
-          <BackIcon className="w-4 h-4" /> {t('backToCatalog')}
+      <motion.div
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-5xl mx-auto px-4 py-6 md:py-10"
+      >
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors mb-6"
+        >
+          <BackIcon className="w-4 h-4" />
+          <span>{t('backToCatalog')}</span>
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 md:gap-8">
-          <div className="mx-auto md:mx-0 w-40 md:w-full">
-            <div className="aspect-[2/3] rounded-xl overflow-hidden bg-accent shadow-elevated">
-              {cover ? <img src={cover} alt={title} className="w-full h-full object-cover" /> :
-                <div className="w-full h-full flex items-center justify-center gradient-primary text-primary-foreground"><BookOpen className="w-12 h-12 opacity-70" /></div>}
+        {/* Book Showcase Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 md:gap-10 items-start">
+          {/* Book Cover Frame (Image 2 Inspiration) */}
+          <div className="mx-auto md:mx-0 w-44 sm:w-52 md:w-full">
+            <div className="relative aspect-[1/1.45] rounded-xl overflow-hidden bg-accent shadow-book-hover border border-border/60">
+              <div className="book-spine-highlight" />
+              {cover ? (
+                <img
+                  src={cover}
+                  alt={title}
+                  className="w-full h-full object-cover clip-reveal-banner"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-primary/15 via-primary/5 to-primary/20 text-foreground">
+                  <BookOpen className="w-12 h-12 text-primary/70 mb-2" />
+                  <span className="text-xs font-bold line-clamp-3">{title}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">{t('appNameShort')}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">{title}</h1>
-            {authorName && <p className="mt-1 text-muted-foreground">{authorName}</p>}
-            <div className="mt-3 flex items-center gap-3 flex-wrap">
+          {/* Book Metadata & Actions */}
+          <div className="space-y-4">
+            <div>
+              {authorName && (
+                <p className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wide">
+                  {authorName}
+                </p>
+              )}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground mt-1 tracking-tight leading-tight">
+                {title}
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
               <StarRating value={Number(book.average_rating ?? 0)} readOnly />
-              <span className="text-sm text-muted-foreground">{Number(book.average_rating ?? 0).toFixed(1)} ({book.ratings_count ?? 0})</span>
+              <span className="text-sm text-muted-foreground font-semibold">
+                {Number(book.average_rating ?? 0).toFixed(1)} ({book.ratings_count ?? 0})
+              </span>
               {activeBorrow ? (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-warning/15 text-warning font-semibold">{t('currentlyBorrowed')}</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-warning/15 text-warning font-bold">
+                  {t('currentlyBorrowed')}
+                </span>
               ) : (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-semibold">{t('available')}</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-success/15 text-success font-bold">
+                  {t('available')}
+                </span>
               )}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+            {/* Structured Specifications Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-secondary/40 border border-border/60 text-sm">
               {book.book_code && <Meta label={t('bookCode')} value={book.book_code} />}
               {book.si_number != null && <Meta label={t('siNumber')} value={String(book.si_number)} />}
               {categoryName && <Meta label={t('category')} value={categoryName} />}
@@ -140,61 +189,109 @@ export default function BookDetails() {
               {book.pages != null && <Meta label={t('pages')} value={String(book.pages)} />}
             </div>
 
+            {/* Currently Borrowed Notice */}
             {activeBorrow && (
-              <div className="mt-4 rounded-xl border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
+              <div className="rounded-xl border border-warning/30 bg-warning/5 p-3.5 flex items-start gap-2.5">
                 <BookMarked className="w-5 h-5 text-warning mt-0.5 shrink-0" />
                 <div className="text-sm">
-                  <p className="font-semibold text-foreground">{t('currentlyBorrowed')}</p>
+                  <p className="font-bold text-foreground">{t('currentlyBorrowed')}</p>
                   <p className="text-muted-foreground text-xs mt-0.5">
-                    {activeBorrow.borrower_name && <>{t('borrowedBy')}: <span className="font-medium text-foreground">{activeBorrow.borrower_name}</span>. </>}
-                    {activeBorrow.due_at && <>{t('expectedReturn')}: <span className="font-medium text-foreground">{new Date(activeBorrow.due_at).toLocaleDateString(lang === 'ar' ? 'ar' : 'en')}</span></>}
+                    {activeBorrow.borrower_name && (
+                      <>{t('borrowedBy')}: <span className="font-semibold text-foreground">{activeBorrow.borrower_name}</span>. </>
+                    )}
+                    {activeBorrow.due_at && (
+                      <>{t('expectedReturn')}: <span className="font-semibold text-foreground">{new Date(activeBorrow.due_at).toLocaleDateString(lang === 'ar' ? 'ar' : 'en')}</span></>
+                    )}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              {!activeBorrow && <Button onClick={() => setShowRequest(true)}>{t('requestBook')}</Button>}
-              {book.full_text && <Button variant="outline" onClick={() => setShowReader(true)}>{t('readFullText')}</Button>}
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2.5 pt-2">
+              {!activeBorrow && (
+                <Button
+                  onClick={() => setShowRequest(true)}
+                  className="rounded-xl px-6 font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <BookOpen className="w-4 h-4 me-1.5" />
+                  <span>{t('requestBook')}</span>
+                </Button>
+              )}
+              {book.full_text && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReader(true)}
+                  className="rounded-xl px-6 font-bold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  <Sparkles className="w-4 h-4 me-1.5" />
+                  <span>{t('readFullText')}</span>
+                </Button>
+              )}
             </div>
 
+            {/* Book Description */}
             {desc && (
-              <div className="mt-5">
-                <h2 className="font-semibold text-foreground mb-1.5">{t('description')}</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed" dir="rtl">{desc}</p>
+              <div className="pt-4 border-t border-border/50">
+                <h2 className="text-base font-bold text-foreground mb-2">{t('description')}</h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed" dir="rtl">
+                  {desc}
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="mt-10">
-          <h2 className="text-xl font-bold text-foreground mb-4">{t('reviews')}</h2>
-          <Card className="p-4 mb-5">
-            <div className="space-y-3">
+        {/* Reviews Section */}
+        <div className="mt-14 pt-8 border-t border-border/60">
+          <h2 className="text-xl font-extrabold text-foreground mb-4">{t('reviews')}</h2>
+
+          <Card className="p-4 sm:p-6 mb-6 rounded-2xl border-border/60 shadow-sm">
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-1.5">{t('yourName')}</p>
-                <Input value={reviewerName} onChange={(e) => saveName(e.target.value)} />
+                <label className="text-xs font-bold text-foreground block mb-1.5">{t('yourName')}</label>
+                <Input
+                  value={reviewerName}
+                  onChange={(e) => saveName(e.target.value)}
+                  className="rounded-xl"
+                  placeholder={lang === 'ar' ? 'أدخل اسمك الكريم' : 'Enter your name'}
+                />
               </div>
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <p className="text-sm font-medium mb-1.5">{t('yourRating')}</p>
-                  <StarRating value={stars} onChange={submitRating} />
-                </div>
-              </div>
+
               <div>
-                <p className="text-sm font-medium mb-1.5">{t('writeReview')}</p>
-                <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={3} placeholder={t('writeReview')} />
-                <Button onClick={submitReview} disabled={submitting || !reviewText.trim()} className="mt-2" size="sm">{t('postReview')}</Button>
+                <label className="text-xs font-bold text-foreground block mb-1.5">{t('yourRating')}</label>
+                <StarRating value={stars} onChange={submitRating} />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1.5">{t('writeReview')}</label>
+                <Textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  rows={3}
+                  className="rounded-xl"
+                  placeholder={t('writeReview')}
+                />
+                <Button
+                  onClick={submitReview}
+                  disabled={submitting || !reviewText.trim()}
+                  className="mt-3 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+                  size="sm"
+                >
+                  {t('postReview')}
+                </Button>
               </div>
             </div>
           </Card>
 
-          {reviews.length === 0 ? <p className="text-sm text-muted-foreground py-6 text-center">{t('noReviews')}</p> : (
+          {reviews.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">{t('noReviews')}</p>
+          ) : (
             <div className="space-y-3">
               {reviews.map((r) => (
-                <Card key={r.id} className="p-4">
+                <Card key={r.id} className="p-4 rounded-xl border-border/60 shadow-sm">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <p className="font-semibold text-sm text-foreground">{r.reviewer_name || '—'}</p>
+                    <p className="font-bold text-sm text-foreground">{r.reviewer_name || '—'}</p>
                     <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString(lang === 'ar' ? 'ar' : 'en')}</p>
                   </div>
                   <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{r.content}</p>
@@ -203,14 +300,21 @@ export default function BookDetails() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       <BorrowRequestModal bookId={book.id} open={showRequest} onClose={() => setShowRequest(false)} />
-      {book.full_text && <BookReader bookId={book.id} title={title} text={book.full_text} open={showReader} onClose={() => setShowReader(false)} />}
+      {book.full_text && (
+        <BookReader bookId={book.id} title={title} text={book.full_text} open={showReader} onClose={() => setShowReader(false)} />
+      )}
     </Layout>
   );
 }
 
 function Meta({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p><p className="text-sm font-medium text-foreground">{value}</p></div>;
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <p className="text-sm font-bold text-foreground mt-0.5 truncate">{value}</p>
+    </div>
+  );
 }

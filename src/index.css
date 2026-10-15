@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Cairo:wght@400;600;700;900&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Amiri:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,144 +6,317 @@
 
 @layer base {
   :root {
-    /* Light: white background, deep navy blue primary */
+    /* Islamic Deep Green & White Visual Identity (Default Light) */
     --background: 0 0% 100%;
-    --foreground: 220 60% 12%;
+    --foreground: 160 40% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 60% 12%;
+    --card-foreground: 160 40% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 60% 12%;
+    --popover-foreground: 160 40% 12%;
 
-    --primary: 220 75% 18%;
+    /* Deep Emerald Green matching Islamic minimalism (#0b4d32 & #108a5c) */
+    --primary: 158 68% 22%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 220 70% 38%;
+    --primary-glow: 158 66% 36%;
+    --primary-light: 158 45% 95%;
 
-    --secondary: 220 30% 96%;
-    --secondary-foreground: 220 75% 18%;
+    --secondary: 158 35% 96%;
+    --secondary-foreground: 158 68% 20%;
 
-    --muted: 220 20% 95%;
-    --muted-foreground: 220 10% 40%;
+    --muted: 158 15% 95%;
+    --muted-foreground: 160 15% 44%;
 
-    --accent: 220 40% 94%;
-    --accent-foreground: 220 75% 18%;
+    --accent: 158 35% 94%;
+    --accent-foreground: 158 68% 18%;
 
-    --destructive: 0 75% 45%;
+    --destructive: 0 75% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 35%;
+    --success: 152 65% 36%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 220 60% 12%;
+    --warning-foreground: 160 40% 12%;
 
-    --border: 220 25% 90%;
-    --input: 220 25% 90%;
-    --ring: 220 75% 25%;
+    --border: 158 20% 90%;
+    --input: 158 20% 90%;
+    --ring: 158 68% 26%;
 
-    --brand: 259 42% 49%;
+    --brand: 158 68% 26%;
     --brand-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 80% 12%) 0%, hsl(220 70% 28%) 100%);
-    --gradient-hero: linear-gradient(160deg, hsl(220 80% 10%) 0%, hsl(220 70% 22%) 60%, hsl(220 60% 32%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(158 72% 19%) 0%, hsl(158 64% 30%) 100%);
+    --gradient-hero: linear-gradient(170deg, hsl(158 75% 18%) 0%, hsl(158 65% 26%) 60%, hsl(158 55% 34%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(158 30% 98%) 100%);
+    --gradient-medallion: radial-gradient(circle at center, hsl(158 68% 36% / 0.16) 0%, transparent 70%);
 
-    --shadow-sm: 0 1px 2px 0 hsl(220 80% 12% / 0.05);
-    --shadow-md: 0 4px 12px -2px hsl(220 80% 12% / 0.12);
-    --shadow-lg: 0 16px 40px -8px hsl(220 80% 12% / 0.25);
+    --shadow-soft: 0 2px 10px -2px hsl(158 60% 15% / 0.08);
+    --shadow-md: 0 8px 24px -4px hsl(158 60% 15% / 0.10);
+    --shadow-lg: 0 16px 40px -8px hsl(158 60% 15% / 0.18);
+    --shadow-book: 0 10px 24px -5px hsl(158 70% 10% / 0.16), 0 3px 8px -2px hsl(158 70% 10% / 0.08);
+    --shadow-book-hover: 0 20px 36px -8px hsl(158 70% 10% / 0.28), 0 6px 14px -3px hsl(158 70% 10% / 0.12);
   }
 
   .dark {
-    --background: 220 50% 7%;
-    --foreground: 0 0% 96%;
+    /* Coordinated Dark-Mode Experience (Deep Obsidian Emerald) */
+    --background: 160 38% 7%;
+    --foreground: 150 15% 96%;
 
-    --card: 220 40% 10%;
-    --card-foreground: 0 0% 96%;
+    --card: 160 28% 11%;
+    --card-foreground: 150 15% 96%;
 
-    --popover: 220 40% 10%;
-    --popover-foreground: 0 0% 96%;
+    --popover: 160 28% 11%;
+    --popover-foreground: 150 15% 96%;
 
-    --primary: 220 70% 55%;
-    --primary-foreground: 220 60% 8%;
-    --primary-glow: 220 75% 65%;
+    --primary: 158 65% 48%;
+    --primary-foreground: 160 40% 7%;
+    --primary-glow: 158 75% 58%;
+    --primary-light: 160 30% 15%;
 
-    --secondary: 220 30% 16%;
-    --secondary-foreground: 0 0% 96%;
+    --secondary: 160 25% 16%;
+    --secondary-foreground: 150 15% 96%;
 
-    --muted: 220 25% 18%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 160 20% 18%;
+    --muted-foreground: 158 12% 65%;
 
-    --accent: 220 40% 20%;
-    --accent-foreground: 0 0% 96%;
+    --accent: 160 30% 18%;
+    --accent-foreground: 150 15% 96%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 22%;
-    --input: 220 25% 20%;
-    --ring: 220 70% 55%;
+    --border: 160 22% 20%;
+    --input: 160 22% 20%;
+    --ring: 158 65% 48%;
 
-    --brand: 259 52% 62%;
-    --brand-foreground: 0 0% 100%;
+    --brand: 158 65% 48%;
+    --brand-foreground: 160 40% 7%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(160 35% 12%) 0%, hsl(158 50% 22%) 100%);
+    --gradient-hero: linear-gradient(170deg, hsl(160 40% 9%) 0%, hsl(160 35% 14%) 60%, hsl(158 45% 18%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(160 28% 11%) 0%, hsl(160 28% 9%) 100%);
+    --gradient-medallion: radial-gradient(circle at center, hsl(158 65% 48% / 0.18) 0%, transparent 70%);
+
+    --shadow-soft: 0 2px 10px -2px hsl(0 0% 0% / 0.35);
+    --shadow-md: 0 8px 24px -4px hsl(0 0% 0% / 0.45);
+    --shadow-lg: 0 16px 40px -8px hsl(0 0% 0% / 0.60);
+    --shadow-book: 0 10px 24px -5px hsl(0 0% 0% / 0.55);
+    --shadow-book-hover: 0 20px 36px -8px hsl(158 65% 48% / 0.25), 0 6px 16px -3px hsl(0 0% 0% / 0.7);
   }
 }
 
 @layer base {
   * { @apply border-border; }
 
-  html { font-family: 'Tajawal', 'Poppins', system-ui, sans-serif; }
+  html {
+    font-family: 'Tajawal', 'Cairo', 'Poppins', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
   html[dir='rtl'] { font-family: 'Tajawal', 'Cairo', system-ui, sans-serif; }
   html[dir='ltr'] { font-family: 'Poppins', 'Inter', system-ui, sans-serif; }
 
-  body { @apply bg-background text-foreground antialiased; }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    overflow-x: hidden;
+  }
 
-  h1, h2, h3, h4, h5, h6 { font-family: inherit; font-weight: 700; }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
 }
 
 @layer components {
   .gradient-primary { background: var(--gradient-primary); }
   .gradient-hero { background: var(--gradient-hero); }
   .gradient-card { background: var(--gradient-card); }
-  .shadow-soft { box-shadow: var(--shadow-md); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-elevated { box-shadow: var(--shadow-lg); }
+  .shadow-book { box-shadow: var(--shadow-book); }
+  .shadow-book-hover { box-shadow: var(--shadow-book-hover); }
 
+  /* STRICT 3 cards per row on mobile, exactly 5 cards per row on desktop */
   .book-grid {
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   @media (min-width: 768px) {
-    .book-grid { gap: 1.25rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .book-grid {
+      gap: 1.5rem;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  /* Book Cover 3D Spine and Sheen Illusion */
+  .book-cover-frame {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: hsl(var(--accent));
+    box-shadow: var(--shadow-book);
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: center center;
+  }
+  .book-cover-frame:hover {
+    transform: translateY(-4px) scale(1.025);
+    box-shadow: var(--shadow-book-hover);
+  }
+
+  /* Subtle book spine edge highlight (LTR & RTL aware) */
+  html[dir='rtl'] .book-spine-highlight {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: 6px;
+    background: linear-gradient(to left, rgba(0,0,0,0.18), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+  html[dir='ltr'] .book-spine-highlight {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 6px;
+    background: linear-gradient(to right, rgba(0,0,0,0.18), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Islamic Calligraphy Medallion Glow */
+  .medallion-halo {
+    position: relative;
+  }
+  .medallion-halo::after {
+    content: '';
+    position: absolute;
+    inset: -15%;
+    border-radius: 9999px;
+    background: radial-gradient(circle, hsl(var(--primary-glow) / 0.22) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: pulse-glow 6s ease-in-out infinite alternate;
+  }
+
+  /* Clip Path Reveal for Banners & Features */
+  .clip-reveal-banner {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+    animation: clip-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Islamic Geometric Lattice Texture */
+  .islamic-pattern-bg {
+    background-image: radial-gradient(hsl(var(--primary) / 0.08) 1.5px, transparent 1.5px),
+                      radial-gradient(hsl(var(--primary) / 0.04) 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+    background-position: 0 0, 14px 14px;
   }
 }
 
-@keyframes logo-pop {
-  0% { transform: scale(0.4); opacity: 0; }
-  60% { transform: scale(1.08); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+/* Animations */
+@keyframes pulse-glow {
+  0% { transform: scale(0.96); opacity: 0.6; }
+  100% { transform: scale(1.06); opacity: 1; }
 }
+
+@keyframes clip-reveal {
+  0% {
+    clip-path: polygon(0 0, 0 0, 0 100%, 0% 100%);
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float-subtle {
+  animation: float-subtle 5s ease-in-out infinite;
+}
+
 @keyframes spin-cw {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.animate-spin-cw { animation: spin-cw 2s linear infinite; transform-origin: 50% 50%; }
+.animate-spin-cw {
+  animation: spin-cw 2s linear infinite;
+  transform-origin: 50% 50%;
+}
 
-/* Logo turns white in dark mode */
-.logo-adaptive { transition: filter 0.2s ease; }
-.dark .logo-adaptive { filter: brightness(0) invert(1); }
+@keyframes logo-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.logo-adaptive {
+  transition: filter 0.25s ease;
+}
+.dark .logo-adaptive {
+  filter: brightness(0) invert(1);
+}
 
 @keyframes shine {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 .shine-text {
-  background: linear-gradient(90deg, hsl(var(--primary-foreground)) 0%, hsl(var(--primary-glow)) 40%, hsl(var(--primary-foreground)) 80%);
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 50%, hsl(var(--primary)) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shine 2.4s linear infinite;
+  animation: shine 3.5s linear infinite;
+}
+
+/* Micro interaction transitions */
+.smooth-press {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.smooth-press:active {
+  transform: scale(0.96);
+}
+
+/* Scrollbar refinement */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.4);
+}
+
+/* Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-spin-cw,
+  .animate-float-subtle,
+  .medallion-halo::after,
+  .shine-text {
+    animation: none !important;
+  }
 }
