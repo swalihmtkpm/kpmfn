@@ -172,17 +172,17 @@ export function convertDriveUrl(url: string | null | undefined, type: 'image' | 
 }
 
 const STORAGE_KEYS = {
-  BOOKS: 'imthiyaz_books_v2',
-  STUDENTS: 'imthiyaz_students_v2',
-  BANNERS: 'imthiyaz_banners_v2',
-  REQUESTS: 'imthiyaz_borrow_requests_v2',
-  RECORDS: 'imthiyaz_borrow_records_v2',
-  CATEGORIES: 'imthiyaz_categories_v2',
-  REVIEWS: 'imthiyaz_reviews_v2',
-  RATINGS: 'imthiyaz_ratings_v2',
-  READING_RECORDS: 'imthiyaz_reading_records_v2',
-  LEADERBOARD_SETTINGS: 'imthiyaz_leaderboard_settings_v2',
-  LEADERBOARD_SNAPSHOTS: 'imthiyaz_leaderboard_snapshots_v2',
+  BOOKS: 'imthiyaz_books_v3',
+  STUDENTS: 'imthiyaz_students_v3',
+  BANNERS: 'imthiyaz_banners_v3',
+  REQUESTS: 'imthiyaz_borrow_requests_v3',
+  RECORDS: 'imthiyaz_borrow_records_v3',
+  CATEGORIES: 'imthiyaz_categories_v3',
+  REVIEWS: 'imthiyaz_reviews_v3',
+  RATINGS: 'imthiyaz_ratings_v3',
+  READING_RECORDS: 'imthiyaz_reading_records_v3',
+  LEADERBOARD_SETTINGS: 'imthiyaz_leaderboard_settings_v3',
+  LEADERBOARD_SNAPSHOTS: 'imthiyaz_leaderboard_snapshots_v3',
 };
 
 export const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
@@ -190,95 +190,8 @@ export const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
   is_hidden_from_public: false,
 };
 
-export const DEFAULT_READING_RECORDS: ReadingRecord[] = [
-  {
-    id: 'read-1',
-    student_id: 'std-1',
-    student_name: 'عبد الله بن أحمد الفلاني',
-    student_spr_id: 'SPR0156',
-    book_id: 'b0000001-0000-0000-0000-000000000001',
-    book_title: 'صحيح البخاري - الجامع الصحيح المختصر',
-    book_pages: 1824,
-    reading_status: 'full',
-    pages_read: 1824,
-    points_awarded: 730,
-    awarded_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    notes: 'قراءة كاملة ومتقنة',
-  },
-  {
-    id: 'read-2',
-    student_id: 'std-1',
-    student_name: 'عبد الله بن أحمد الفلاني',
-    student_spr_id: 'SPR0156',
-    book_id: 'b0000008-0000-0000-0000-000000000008',
-    book_title: 'رياض الصالحين من كلام سيد المرسلين',
-    book_pages: 680,
-    reading_status: 'full',
-    pages_read: 680,
-    points_awarded: 272,
-    awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    notes: 'إتمام كتاب رياض الصالحين',
-  },
-  {
-    id: 'read-3',
-    student_id: 'std-2',
-    student_name: 'محمد زين الدين المليباري',
-    student_spr_id: 'SPR0157',
-    book_id: 'b0000009-0000-0000-0000-000000000009',
-    book_title: 'فتح المعين بشرح قرة العين بمهمات الدين',
-    book_pages: 450,
-    reading_status: 'full',
-    pages_read: 450,
-    points_awarded: 180,
-    awarded_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-  },
-  {
-    id: 'read-4',
-    student_id: 'std-2',
-    student_name: 'محمد زين الدين المليباري',
-    student_spr_id: 'SPR0157',
-    book_id: 'b0000004-0000-0000-0000-000000000004',
-    book_title: 'منهاج الطالبين وعمدة المفتين',
-    book_pages: 620,
-    reading_status: 'custom',
-    pages_read: 300,
-    points_awarded: 120,
-    awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    notes: 'قراءة 300 صفحة من كتاب المعاملات',
-  },
-  {
-    id: 'read-5',
-    student_id: 'std-3',
-    student_name: 'سالم بن عمر بافضل',
-    student_spr_id: 'SPR0158',
-    book_id: 'b0000007-0000-0000-0000-000000000007',
-    book_title: 'الرحيق المختوم في سيرة النبي المأمون',
-    book_pages: 520,
-    reading_status: 'full',
-    pages_read: 520,
-    points_awarded: 208,
-    awarded_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-  },
-];
-
-export const DEFAULT_REVIEWS: Review[] = [
-  {
-    id: 'rev-1',
-    book_id: 'bk-1',
-    reviewer_name: 'أحمد بن عبد الله',
-    content: 'طبعة محققة رائعة ومضبوطة بالشكل الكامل، لا غنى عنها لأي طالب علم.',
-    rating: 5,
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: 'rev-2',
-    book_id: 'bk-3',
-    reviewer_name: 'محمد الشافعي',
-    content: 'من أنفس شروح صحيح البخاري، مفيد جداً في ضبط الألفاظ واستنباط الأحكام الفقهية.',
-    rating: 5,
-    created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-];
+export const DEFAULT_READING_RECORDS: ReadingRecord[] = [];
+export const DEFAULT_REVIEWS: Review[] = [];
 
 // Seed Categories
 export const DEFAULT_CATEGORIES = [
@@ -290,287 +203,11 @@ export const DEFAULT_CATEGORIES = [
   { id: 'cat-6', name_ar: 'اللغة العربية وآدابها', name_en: 'Arabic Language & Literature', icon: 'Feather', sort_order: 6 },
 ];
 
-// Seed Students (including SPR0156 as mentioned in prompt)
-export const DEFAULT_STUDENTS: Student[] = [
-  {
-    id: 'std-1',
-    name: 'عبد الله بن أحمد الفلاني',
-    klass: 'الصف العاشر (ثانوي)',
-    spr_id: 'SPR0156',
-    secret_code: '4589',
-    father_name: 'AHMED',
-    house_name: 'DARUSSALAM',
-    dob: '2006-04-15',
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-  },
-  {
-    id: 'std-2',
-    name: 'محمد زين الدين المليباري',
-    klass: 'الصف الحادي عشر (ثانوي)',
-    spr_id: 'SPR0157',
-    secret_code: '1234',
-    father_name: 'ZAINUDDIN',
-    house_name: 'ALHILAL',
-    dob: '2005-08-20',
-    created_at: new Date(Date.now() - 25 * 86400000).toISOString(),
-  },
-  {
-    id: 'std-3',
-    name: 'سالم بن عمر بافضل',
-    klass: 'الصف التاسع (متوسط)',
-    spr_id: 'SPR0158',
-    secret_code: '7788',
-    father_name: 'OMAR',
-    house_name: 'BAFADHAL',
-    dob: '2007-02-10',
-    created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
-  },
-  {
-    id: 'std-4',
-    name: 'عمر بن عبد الرحمن العطاس',
-    klass: 'الصف الثاني عشر (تخرج)',
-    spr_id: 'SPR0159',
-    secret_code: '9900',
-    father_name: 'ABDULRAHMAN',
-    house_name: 'NOOR',
-    dob: '2004-11-05',
-    created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-  },
-];
+// Clean defaults: 0 mock students
+export const DEFAULT_STUDENTS: Student[] = [];
 
-// Seed 10+ Books with Arabic & English titles, authors, publishers, volume, code, ratings
-export const DEFAULT_BOOKS: Book[] = [
-  {
-    id: 'bk-1',
-    si_number: 1,
-    book_code: 'KB-001',
-    title_ar: 'صحيح البخاري - الجامع الصحيح المختصر',
-    title_en: 'Sahih Al-Bukhari',
-    author_ar: 'الإمام محمد بن إسماعيل البخاري',
-    author_en: 'Imam Muhammad ibn Ismail al-Bukhari',
-    publisher_ar: 'دار طوق النجاة - بيروت',
-    publisher_en: 'Dar Tawq Al-Najat',
-    volume: '1-4',
-    pages: 1824,
-    category_id: 'cat-1',
-    category_name_ar: 'الحديث الشريف وعلومه',
-    category_name_en: 'Hadith & Its Sciences',
-    cover_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 5.0,
-    ratings_count: 28,
-    description_ar: 'أصح كتاب بعد كتاب الله عز وجل، يحوي آلاف الأحاديث النبوية الصحيحة المسندة.',
-    description_en: 'The most authentic collection of Hadith after the Holy Quran.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-2',
-    si_number: 2,
-    book_code: 'KB-002',
-    title_ar: 'صحيح مسلم - المسند الصحيح',
-    title_en: 'Sahih Muslim',
-    author_ar: 'الإمام مسلم بن الحجاج النيسابوري',
-    author_en: 'Imam Muslim ibn al-Hajjaj',
-    publisher_ar: 'دار إحياء التراث العربي',
-    publisher_en: 'Dar Ihya al-Turath',
-    volume: '1-5',
-    pages: 2150,
-    category_id: 'cat-1',
-    category_name_ar: 'الحديث الشريف وعلومه',
-    category_name_en: 'Hadith & Its Sciences',
-    cover_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.9,
-    ratings_count: 22,
-    description_ar: 'أحد أركان السنة النبوية الشريفة ومن أدق كتب الحديث ترتيباً وصحة.',
-    description_en: 'Renowned authentic hadith compilation known for rigorous classification.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-3',
-    si_number: 3,
-    book_code: 'KB-003',
-    title_ar: 'فتح الباري بشرح صحيح البخاري',
-    title_en: 'Fath al-Bari Commentary on Sahih al-Bukhari',
-    author_ar: 'الحافظ ابن حجر العسقلاني',
-    author_en: 'Ibn Hajar al-Asqalani',
-    publisher_ar: 'دار المعرفة - بيروت',
-    publisher_en: 'Dar al-Ma’rifah',
-    volume: '1-13',
-    pages: 6540,
-    category_id: 'cat-1',
-    category_name_ar: 'الحديث الشريف وعلومه',
-    category_name_en: 'Hadith & Its Sciences',
-    cover_url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.9,
-    ratings_count: 19,
-    description_ar: 'أعظم شروح صحيح البخاري وأجمعها، موسوعة إسلامية شاملة.',
-    description_en: 'Monumental 13-volume commentary on Sahih al-Bukhari.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-4',
-    si_number: 4,
-    book_code: 'KB-004',
-    title_ar: 'منهاج الطالبين وعمدة المفتين',
-    title_en: 'Minhaj al-Talibin wa Umdat al-Muftin',
-    author_ar: 'الإمام يحيى بن شرف النووي',
-    author_en: 'Imam Yahya ibn Sharaf al-Nawawi',
-    publisher_ar: 'دار المنهاج - جدة',
-    publisher_en: 'Dar al-Minhaj',
-    volume: '1',
-    pages: 620,
-    category_id: 'cat-2',
-    category_name_ar: 'الفقه الشافعي وأصوله',
-    category_name_en: 'Shafi’i Fiqh & Usul',
-    cover_url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.8,
-    ratings_count: 17,
-    description_ar: 'المعتمد الأساسي في الفتوى وتدريس الفقه الشافعي في سائر أقطار العالم الإسلامي.',
-    description_en: 'The definitive classical manual of Shafi’i jurisprudence.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-5',
-    si_number: 5,
-    book_code: 'KB-005',
-    title_ar: 'إحياء علوم الدين',
-    title_en: 'Ihya Ulum al-Din',
-    author_ar: 'حجة الإسلام الإمام أبو حامد الغزالي',
-    author_en: 'Imam Abu Hamid al-Ghazali',
-    publisher_ar: 'دار ابن حزم - بيروت',
-    publisher_en: 'Dar Ibn Hazm',
-    volume: '1-4',
-    pages: 2480,
-    category_id: 'cat-5',
-    category_name_ar: 'العقيدة والتصوف',
-    category_name_en: 'Aqeedah & Tasawwuf',
-    cover_url: 'https://images.unsplash.com/photo-1463320726281-696a485928c7?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.8,
-    ratings_count: 15,
-    description_ar: 'تحفة علم السلوك وتزكية النفس، يجمع بين الفقه وبواطن الإيمان والأخلاق.',
-    description_en: 'The Revival of the Religious Sciences by Imam Ghazali.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-6',
-    si_number: 6,
-    book_code: 'KB-006',
-    title_ar: 'تفسير القرآن العظيم (تفسير ابن كثير)',
-    title_en: 'Tafsir Ibn Kathir',
-    author_ar: 'الحافظ عماد الدين إسماعيل بن كثير',
-    author_en: 'Ismail ibn Kathir',
-    publisher_ar: 'دار طيبة للنشر والتوزيع',
-    publisher_en: 'Dar Taybah',
-    volume: '1-8',
-    pages: 4100,
-    category_id: 'cat-3',
-    category_name_ar: 'التفسير وعلوم القرآن',
-    category_name_en: 'Tafsir & Quranic Sciences',
-    cover_url: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.7,
-    ratings_count: 14,
-    description_ar: 'أشهر تفاسير القرآن بالمأثور وأوثقها بياناً لآيات الذكر الحكيم.',
-    description_en: 'Classic exegesis of the Quran by Ibn Kathir.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-7',
-    si_number: 7,
-    book_code: 'KB-007',
-    title_ar: 'الرحيق المختوم في سيرة النبي المأمون',
-    title_en: 'The Sealed Nectar',
-    author_ar: 'الشيخ صفي الرحمن المباركفوري',
-    author_en: 'Safiur Rahman al-Mubarakpuri',
-    publisher_ar: 'دار الهلال - بيروت',
-    publisher_en: 'Dar al-Hilal',
-    volume: '1',
-    pages: 520,
-    category_id: 'cat-4',
-    category_name_ar: 'السيرة النبوية والتاريخ',
-    category_name_en: 'Prophetic Biography & History',
-    cover_url: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.7,
-    ratings_count: 12,
-    description_ar: 'الكتاب الحائز على الجائزة الأولى في مسابقة السيرة النبوية العالمية.',
-    description_en: 'Award-winning biography of Prophet Muhammad (peace be upon him).',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-8',
-    si_number: 8,
-    book_code: 'KB-008',
-    title_ar: 'رياض الصالحين من كلام سيد المرسلين',
-    title_en: 'Riyad as-Salihin',
-    author_ar: 'الإمام يحيى بن شرف النووي',
-    author_en: 'Imam Yahya ibn Sharaf al-Nawawi',
-    publisher_ar: 'دار المنهاج - بيروت',
-    publisher_en: 'Dar al-Minhaj',
-    volume: '1',
-    pages: 680,
-    category_id: 'cat-1',
-    category_name_ar: 'الحديث الشريف وعلومه',
-    category_name_en: 'Hadith & Its Sciences',
-    cover_url: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.6,
-    ratings_count: 10,
-    description_ar: 'كتاب جامع للأحاديث الصحيحة في الرقائق والآداب والأذكار وسائر أبواب الخير.',
-    description_en: 'The Gardens of the Righteous by Imam an-Nawawi.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-9',
-    si_number: 9,
-    book_code: 'KB-009',
-    title_ar: 'فتح المعين بشرح قرة العين بمهمات الدين',
-    title_en: 'Fath al-Muin bi Sharh Qurrat al-Ayn',
-    author_ar: 'العلامة زين الدين أحمد بن عبد العزيز المليباري',
-    author_en: 'Zainuddin Ahmad al-Malibari',
-    publisher_ar: 'دار الفكر - بيروت',
-    publisher_en: 'Dar al-Fikr',
-    volume: '1',
-    pages: 450,
-    category_id: 'cat-2',
-    category_name_ar: 'الفقه الشافعي وأصوله',
-    category_name_en: 'Shafi’i Fiqh & Usul',
-    cover_url: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80',
-    status: 'available',
-    average_rating: 4.6,
-    ratings_count: 9,
-    description_ar: 'المرجع الفقهي الشافعي الأبرز الذي درسه طلاب العلم عبر القرون.',
-    description_en: 'Famous classic manual in Shafi’i jurisprudence by Sheikh Zainuddin.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'bk-10',
-    si_number: 10,
-    book_code: 'KB-010',
-    title_ar: 'مخطوطة النحو الوافي - نسخة نادرة',
-    title_en: 'Al-Nahw Al-Wafi Rare Manuscript',
-    author_ar: 'عباس حسن النحوي',
-    author_en: 'Abbas Hasan',
-    publisher_ar: 'دار المعارف - القاهرة',
-    publisher_en: 'Dar al-Maarif',
-    volume: '1',
-    pages: 580,
-    category_id: 'cat-6',
-    category_name_ar: 'اللغة العربية وآدابها',
-    category_name_en: 'Arabic Language & Literature',
-    cover_url: 'https://images.unsplash.com/photo-1532012164546-f432f2e3777f?auto=format&fit=crop&w=600&q=80',
-    status: 'missed', // MISSED BOOK to showcase red shading!
-    average_rating: 4.5,
-    ratings_count: 8,
-    description_ar: 'كتاب في قواعد النحو العربي. تم الإبلاغ عن فقدان هذه النسخة من القاعة الرئيسية.',
-    description_en: 'Arabic grammar text. Reported missed from main hall.',
-    created_at: new Date().toISOString(),
-  },
-];
+// Clean defaults: 0 mock books
+export const DEFAULT_BOOKS: Book[] = [];
 
 // Seed Banners (with Drive image / video options)
 export const DEFAULT_BANNERS: Banner[] = [
@@ -600,76 +237,11 @@ export const DEFAULT_BANNERS: Banner[] = [
   },
 ];
 
-// Seed Borrow Records & Requests
-export const DEFAULT_REQUESTS: BorrowRequest[] = [
-  {
-    id: 'req-1',
-    book_id: 'bk-1',
-    book_title: 'صحيح البخاري - الجامع الصحيح المختصر',
-    student_id: 'std-1',
-    requester_name: 'عبد الله بن أحمد الفلاني',
-    requester_type: 'current_student',
-    requester_class: 'الصف العاشر (ثانوي)',
-    requester_spr_id: 'SPR0156',
-    days_requested: 7,
-    expected_return_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    status: 'approved',
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: 'req-2',
-    book_id: 'bk-4',
-    book_title: 'منهاج الطالبين وعمدة المفتين',
-    student_id: 'std-2',
-    requester_name: 'محمد زين الدين المليباري',
-    requester_type: 'current_student',
-    requester_class: 'الصف الحادي عشر (ثانوي)',
-    requester_spr_id: 'SPR0157',
-    days_requested: 14,
-    expected_return_date: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-    status: 'pending',
-    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-  },
-  {
-    id: 'req-3',
-    book_id: 'bk-2',
-    book_title: 'صحيح مسلم - المسند الصحيح',
-    student_id: 'std-1',
-    requester_name: 'عبد الله بن أحمد الفلاني',
-    requester_type: 'current_student',
-    requester_class: 'الصف العاشر (ثانوي)',
-    requester_spr_id: 'SPR0156',
-    days_requested: 10,
-    expected_return_date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
-    status: 'returned',
-    returned_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-  },
-];
+// Clean defaults: 0 mock requests
+export const DEFAULT_REQUESTS: BorrowRequest[] = [];
 
-export const DEFAULT_RECORDS: BorrowRecord[] = [
-  {
-    id: 'rec-1',
-    book_id: 'bk-1',
-    book_title: 'صحيح البخاري - الجامع الصحيح المختصر',
-    student_id: 'std-1',
-    borrower_name: 'عبد الله بن أحمد الفلاني',
-    borrowed_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    due_at: new Date(Date.now() + 4 * 86400000).toISOString(),
-    status: 'active',
-  },
-  {
-    id: 'rec-2',
-    book_id: 'bk-2',
-    book_title: 'صحيح مسلم - المسند الصحيح',
-    student_id: 'std-1',
-    borrower_name: 'عبد الله بن أحمد الفلاني',
-    borrowed_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-    due_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    returned_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    status: 'returned',
-  },
-];
+// Clean defaults: 0 mock records
+export const DEFAULT_RECORDS: BorrowRecord[] = [];
 
 class DataService {
   private getItem<T>(key: string, fallback: T): T {
@@ -688,8 +260,15 @@ class DataService {
   private setItem<T>(key: string, data: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(data));
+      this.notifyChange();
     } catch (e) {
       console.warn('DataService write error:', e);
+    }
+  }
+
+  notifyChange(): void {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('imthiyaz_data_updated'));
     }
   }
 
@@ -706,8 +285,67 @@ class DataService {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      // Purge old legacy keys
+      const legacyKeys = [
+        'imthiyaz_books', 'imthiyaz_students', 'imthiyaz_borrow_requests', 'imthiyaz_borrow_records',
+        'imthiyaz_books_v2', 'imthiyaz_students_v2', 'imthiyaz_banners_v2',
+        'imthiyaz_borrow_requests_v2', 'imthiyaz_borrow_records_v2',
+        'imthiyaz_reading_records_v2', 'imthiyaz_reviews_v2', 'imthiyaz_ratings_v2',
+        'imthiyaz_leaderboard_snapshots_v2', 'imthiyaz_leaderboard_settings_v2'
+      ];
+      for (const k of legacyKeys) {
+        try { localStorage.removeItem(k); } catch {}
+      }
+
       this.syncFromSupabase().catch(() => {});
+
+      // Auto-sync on window focus
+      window.addEventListener('focus', () => {
+        this.syncFromSupabase().catch(() => {});
+      });
+
+      // Background periodic sync every 25 seconds
+      setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          this.syncFromSupabase().catch(() => {});
+        }
+      }, 25000);
     }
+  }
+
+  clearAllData(): void {
+    this.setItem(STORAGE_KEYS.BOOKS, []);
+    this.setItem(STORAGE_KEYS.STUDENTS, []);
+    this.setItem(STORAGE_KEYS.REQUESTS, []);
+    this.setItem(STORAGE_KEYS.RECORDS, []);
+    this.setItem(STORAGE_KEYS.READING_RECORDS, []);
+    this.setItem(STORAGE_KEYS.REVIEWS, []);
+    this.setItem(STORAGE_KEYS.RATINGS, []);
+    this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, []);
+
+    // Sync clean slate to permanent cloud settings
+    this.syncToCloud('library_books_v3', []);
+    this.syncToCloud('library_students_v3', []);
+    this.syncToCloud('library_requests_v3', []);
+    this.syncToCloud('library_records_v3', []);
+    this.syncToCloud('library_reading_records_v3', []);
+    this.syncToCloud('library_leaderboard_snapshots_v3', []);
+
+    // Attempt direct delete on Supabase tables
+    (async () => {
+      try {
+        await supabase.from('books').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('borrow_requests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('borrow_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('reading_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {
+        console.warn('clearAllData Supabase delete notice:', e);
+      }
+    })();
+
+    this.notifyChange();
   }
 
   private async syncToCloud(cloudKey: string, data: any) {
@@ -729,28 +367,28 @@ class DataService {
       const { data: settingsData } = await supabase.from('library_settings').select('*');
       if (settingsData && settingsData.length > 0) {
         for (const row of settingsData) {
-          if (row.key === 'library_books_v2' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_books_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.BOOKS, row.value);
           }
-          if (row.key === 'library_students_v2' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_students_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.STUDENTS, row.value);
           }
-          if (row.key === 'library_banners_v2' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_banners_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.BANNERS, row.value);
           }
-          if (row.key === 'library_records_v2' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_records_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.RECORDS, row.value);
           }
-          if (row.key === 'library_requests_v2' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_requests_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.REQUESTS, row.value);
           }
-          if (row.key === 'library_reading_records' && Array.isArray(row.value) && row.value.length > 0) {
+          if (row.key === 'library_reading_records_v3' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.READING_RECORDS, row.value);
           }
-          if (row.key === 'library_leaderboard_settings' && row.value) {
+          if (row.key === 'library_leaderboard_settings_v3' && row.value) {
             this.setItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, row.value);
           }
-          if (row.key === 'library_leaderboard_snapshots' && Array.isArray(row.value)) {
+          if (row.key === 'library_leaderboard_snapshots_v3' && Array.isArray(row.value)) {
             this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, row.value);
           }
         }
@@ -868,10 +506,43 @@ class DataService {
         });
         this.setItem(STORAGE_KEYS.REVIEWS, Array.from(map.values()));
       }
+
+      // 7. Fetch remote borrow_requests
+      try {
+        const { data: remoteReqs } = await supabase.from('borrow_requests').select('*');
+        if (remoteReqs && remoteReqs.length > 0) {
+          this.setItem(STORAGE_KEYS.REQUESTS, remoteReqs);
+        }
+      } catch {}
+
+      // 8. Fetch remote borrow_records
+      try {
+        const { data: remoteRecs } = await supabase.from('borrow_records').select('*');
+        if (remoteRecs && remoteRecs.length > 0) {
+          this.setItem(STORAGE_KEYS.RECORDS, remoteRecs);
+        }
+      } catch {}
+
+      // 9. Fetch remote reading_records
+      try {
+        const { data: remoteReadings } = await supabase.from('reading_records').select('*');
+        if (remoteReadings && remoteReadings.length > 0) {
+          this.setItem(STORAGE_KEYS.READING_RECORDS, remoteReadings);
+        }
+      } catch {}
+
+      // 10. Fetch remote leaderboard_snapshots
+      try {
+        const { data: remoteSnaps } = await supabase.from('leaderboard_snapshots').select('*');
+        if (remoteSnaps && remoteSnaps.length > 0) {
+          this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, remoteSnaps);
+        }
+      } catch {}
     } catch (e) {
       console.warn('Sync from Supabase notice:', e);
     } finally {
       this.isSyncing = false;
+      this.notifyChange();
     }
   }
 
@@ -910,6 +581,27 @@ class DataService {
     );
   }
 
+  getBookBorrowState(bookId: string): 'borrowed' | 'requested' | 'missed' | 'available' {
+    if (!bookId) return 'available';
+    const book = this.getBookById(bookId);
+    if (book?.status === 'missed') return 'missed';
+    if (book?.status === 'borrowed') return 'borrowed';
+
+    const records = this.getBorrowRecords();
+    const hasActive = records.some(
+      (r) => (r.book_id === bookId || (book && (r.book_id === book.id || r.book_id === book.book_code))) && r.status === 'active'
+    );
+    if (hasActive) return 'borrowed';
+
+    const requests = this.getBorrowRequests();
+    const hasPending = requests.some(
+      (r) => (r.book_id === bookId || (book && (r.book_id === book.id || r.book_id === book.book_code))) && r.status === 'pending'
+    );
+    if (hasPending) return 'requested';
+
+    return 'available';
+  }
+
   saveBook(book: Partial<Book> & { title_ar: string }): Book {
     const list = this.getBooks();
     if (book.id) {
@@ -918,7 +610,7 @@ class DataService {
         const updated = { ...list[idx], ...book };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BOOKS, list);
-        this.syncToCloud('library_books_v2', list);
+        this.syncToCloud('library_books_v3', list);
         this.syncBookDirectToSupabase(updated);
         return updated;
       }
@@ -949,7 +641,7 @@ class DataService {
     };
     list.unshift(newBook);
     this.setItem(STORAGE_KEYS.BOOKS, list);
-    this.syncToCloud('library_books_v2', list);
+    this.syncToCloud('library_books_v3', list);
     this.syncBookDirectToSupabase(newBook);
     return newBook;
   }
@@ -989,7 +681,7 @@ class DataService {
   deleteBook(id: string): void {
     const list = this.getBooks().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BOOKS, list);
-    this.syncToCloud('library_books_v2', list);
+    this.syncToCloud('library_books_v3', list);
 
     (async () => {
       try {
@@ -1039,7 +731,7 @@ class DataService {
       added++;
     }
     this.setItem(STORAGE_KEYS.BOOKS, list);
-    this.syncToCloud('library_books_v2', list);
+    this.syncToCloud('library_books_v3', list);
     return added;
   }
 
@@ -1060,7 +752,7 @@ class DataService {
         const updated = { ...list[idx], ...student };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.STUDENTS, list);
-        this.syncToCloud('library_students_v2', list);
+        this.syncToCloud('library_students_v3', list);
         this.syncStudentDirectToSupabase(updated);
         return updated;
       }
@@ -1078,7 +770,7 @@ class DataService {
     };
     list.unshift(newStudent);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
-    this.syncToCloud('library_students_v2', list);
+    this.syncToCloud('library_students_v3', list);
     this.syncStudentDirectToSupabase(newStudent);
     return newStudent;
   }
@@ -1109,7 +801,7 @@ class DataService {
   deleteStudent(id: string): void {
     const list = this.getStudents().filter((s) => s.id !== id);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
-    this.syncToCloud('library_students_v2', list);
+    this.syncToCloud('library_students_v3', list);
 
     (async () => {
       try {
@@ -1144,7 +836,7 @@ class DataService {
       added++;
     }
     this.setItem(STORAGE_KEYS.STUDENTS, list);
-    this.syncToCloud('library_students_v2', list);
+    this.syncToCloud('library_students_v3', list);
     return added;
   }
 
@@ -1154,7 +846,7 @@ class DataService {
     if (!student) return false;
     student.secret_code = newCode.trim();
     this.setItem(STORAGE_KEYS.STUDENTS, list);
-    this.syncToCloud('library_students_v2', list);
+    this.syncToCloud('library_students_v3', list);
     this.syncStudentDirectToSupabase(student);
     return true;
   }
@@ -1172,7 +864,7 @@ class DataService {
         const updated = { ...list[idx], ...banner };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BANNERS, list);
-        this.syncToCloud('library_banners_v2', list);
+        this.syncToCloud('library_banners_v3', list);
         this.syncBannerDirectToSupabase(updated);
         return updated;
       }
@@ -1191,7 +883,7 @@ class DataService {
     };
     list.push(newBanner);
     this.setItem(STORAGE_KEYS.BANNERS, list);
-    this.syncToCloud('library_banners_v2', list);
+    this.syncToCloud('library_banners_v3', list);
     this.syncBannerDirectToSupabase(newBanner);
     return newBanner;
   }
@@ -1218,7 +910,7 @@ class DataService {
   deleteBanner(id: string): void {
     const list = this.getBanners().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BANNERS, list);
-    this.syncToCloud('library_banners_v2', list);
+    this.syncToCloud('library_banners_v3', list);
 
     (async () => {
       try {
@@ -1247,7 +939,7 @@ class DataService {
     };
     list.unshift(newReq);
     this.setItem(STORAGE_KEYS.REQUESTS, list);
-    this.syncToCloud('library_requests_v2', list);
+    this.syncToCloud('library_requests_v3', list);
     return newReq;
   }
 
@@ -1258,7 +950,7 @@ class DataService {
       item.status = status;
       if (status === 'returned') item.returned_at = new Date().toISOString();
       this.setItem(STORAGE_KEYS.REQUESTS, list);
-      this.syncToCloud('library_requests_v2', list);
+      this.syncToCloud('library_requests_v3', list);
 
       // If approved, create active borrow record
       if (status === 'approved') {
@@ -1274,7 +966,7 @@ class DataService {
           status: 'active',
         });
         this.setItem(STORAGE_KEYS.RECORDS, records);
-        this.syncToCloud('library_records_v2', records);
+        this.syncToCloud('library_records_v3', records);
       } else if (status === 'returned') {
         const records = this.getBorrowRecords();
         const activeRec = records.find((r) => r.book_id === item.book_id && r.borrower_name === item.requester_name && r.status === 'active');
@@ -1282,7 +974,7 @@ class DataService {
           activeRec.status = 'returned';
           activeRec.returned_at = new Date().toISOString();
           this.setItem(STORAGE_KEYS.RECORDS, records);
-          this.syncToCloud('library_records_v2', records);
+          this.syncToCloud('library_records_v3', records);
         }
       }
     }
@@ -1446,7 +1138,7 @@ class DataService {
     const set = new Set(ids);
     const list = this.getBooks().filter((b) => !set.has(b.id));
     this.setItem(STORAGE_KEYS.BOOKS, list);
-    this.syncToCloud('library_books_v2', list);
+    this.syncToCloud('library_books_v3', list);
 
     (async () => {
       try {
@@ -1469,7 +1161,7 @@ class DataService {
     const set = new Set(ids);
     const list = this.getStudents().filter((s) => !set.has(s.id));
     this.setItem(STORAGE_KEYS.STUDENTS, list);
-    this.syncToCloud('library_students_v2', list);
+    this.syncToCloud('library_students_v3', list);
 
     (async () => {
       try {
@@ -1492,14 +1184,14 @@ class DataService {
     const set = new Set(ids);
     const list = this.getBorrowRequests().filter((r) => !set.has(r.id));
     this.setItem(STORAGE_KEYS.REQUESTS, list);
-    this.syncToCloud('library_requests_v2', list);
+    this.syncToCloud('library_requests_v3', list);
   }
 
   bulkDeleteBorrowRecords(ids: string[]): void {
     const set = new Set(ids);
     const list = this.getBorrowRecords().filter((r) => !set.has(r.id));
     this.setItem(STORAGE_KEYS.RECORDS, list);
-    this.syncToCloud('library_records_v2', list);
+    this.syncToCloud('library_records_v3', list);
   }
 
   // Category Management CRUD
@@ -1515,7 +1207,7 @@ class DataService {
     };
     list.push(newCat);
     this.setItem(STORAGE_KEYS.CATEGORIES, list);
-    this.syncToCloud('library_categories_v2', list);
+    this.syncToCloud('library_categories_v3', list);
 
     (async () => {
       try {
@@ -1540,7 +1232,7 @@ class DataService {
       const updated = { ...list[idx], ...cat };
       list[idx] = updated;
       this.setItem(STORAGE_KEYS.CATEGORIES, list);
-      this.syncToCloud('library_categories_v2', list);
+      this.syncToCloud('library_categories_v3', list);
 
       (async () => {
         try {
@@ -1565,7 +1257,7 @@ class DataService {
   deleteCategory(id: string): void {
     const list = this.getCategories().filter((c) => c.id !== id);
     this.setItem(STORAGE_KEYS.CATEGORIES, list);
-    this.syncToCloud('library_categories_v2', list);
+    this.syncToCloud('library_categories_v3', list);
 
     (async () => {
       try {
@@ -1588,7 +1280,7 @@ class DataService {
     const current = this.getLeaderboardSettings();
     const updated = { ...current, ...settings };
     this.setItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, updated);
-    this.syncToCloud('library_leaderboard_settings', updated);
+    this.syncToCloud('library_leaderboard_settings_v3', updated);
 
     // If points per 10 pages changed, recalculate all existing reading records
     if (settings.points_per_10_pages !== undefined && settings.points_per_10_pages !== current.points_per_10_pages) {
@@ -1655,14 +1347,14 @@ class DataService {
     }
 
     this.setItem(STORAGE_KEYS.READING_RECORDS, list);
-    this.syncToCloud('library_reading_records', list);
+    this.syncToCloud('library_reading_records_v3', list);
     return savedRecord;
   }
 
   deleteReadingRecord(id: string): void {
     const list = this.getReadingRecords().filter((r) => r.id !== id);
     this.setItem(STORAGE_KEYS.READING_RECORDS, list);
-    this.syncToCloud('library_reading_records', list);
+    this.syncToCloud('library_reading_records_v3', list);
   }
 
   recalculateAllReadingPoints(): void {
@@ -1685,7 +1377,7 @@ class DataService {
     });
 
     this.setItem(STORAGE_KEYS.READING_RECORDS, updated);
-    this.syncToCloud('library_reading_records', updated);
+    this.syncToCloud('library_reading_records_v3', updated);
   }
 
   getLeaderboard(snapshotId?: string): LeaderboardEntry[] {
@@ -1770,14 +1462,14 @@ class DataService {
     };
     list.unshift(snapshot);
     this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
-    this.syncToCloud('library_leaderboard_snapshots', list);
+    this.syncToCloud('library_leaderboard_snapshots_v3', list);
     return snapshot;
   }
 
   deleteLeaderboardSnapshot(id: string): void {
     const list = this.getLeaderboardSnapshots().filter((s) => s.id !== id);
     this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
-    this.syncToCloud('library_leaderboard_snapshots', list);
+    this.syncToCloud('library_leaderboard_snapshots_v3', list);
   }
 
   // Overdue Books helpers
@@ -1805,7 +1497,7 @@ class DataService {
     record.status = 'returned';
     record.returned_at = new Date().toISOString();
     this.setItem(STORAGE_KEYS.RECORDS, records);
-    this.syncToCloud('library_records_v2', records);
+    this.syncToCloud('library_records_v3', records);
 
     // Also update matching borrow request if pending/approved
     const requests = this.getBorrowRequests();
@@ -1814,7 +1506,7 @@ class DataService {
       req.status = 'returned';
       req.returned_at = new Date().toISOString();
       this.setItem(STORAGE_KEYS.REQUESTS, requests);
-      this.syncToCloud('library_requests_v2', requests);
+      this.syncToCloud('library_requests_v3', requests);
     }
 
     const book = this.getBookById(record.book_id);
@@ -1919,7 +1611,7 @@ class DataService {
       book.average_rating = avg;
       book.ratings_count = count;
       this.setItem(STORAGE_KEYS.BOOKS, bookList);
-      this.syncToCloud('library_books_v2', bookList);
+      this.syncToCloud('library_books_v3', bookList);
     }
     return { average_rating: avg, ratings_count: count };
   }

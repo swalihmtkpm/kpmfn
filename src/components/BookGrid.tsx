@@ -16,6 +16,7 @@ export type BookCard = {
   book_code?: string | null;
   category_name?: string | null;
   status?: string | null;
+  borrowState?: 'borrowed' | 'requested' | 'missed' | 'available' | string | null;
 };
 
 type Props = {
@@ -134,10 +135,21 @@ export default function BookGrid({ books }: Props) {
                 )}
 
                 {/* Status indicator badge for borrowed books */}
-                {!isMissed && b.status === 'borrowed' && (
-                  <div className="absolute top-1.5 start-1.5 z-10">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/95 text-white text-[9px] font-bold shadow-sm backdrop-blur-sm">
-                      {t('borrowed')}
+                {!isMissed && (b.status === 'borrowed' || b.borrowState === 'borrowed') && (
+                  <div className="absolute top-2 start-2 z-20">
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-amber-950 text-[10px] sm:text-[11px] font-black shadow-md border border-amber-300 flex items-center gap-1.5 backdrop-blur-md">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-950 animate-pulse" />
+                      <span>{t('borrowed')}</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Status indicator badge for requested books */}
+                {!isMissed && b.status !== 'borrowed' && b.borrowState !== 'borrowed' && b.borrowState === 'requested' && (
+                  <div className="absolute top-2 start-2 z-20">
+                    <span className="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-[10px] sm:text-[11px] font-black shadow-md border border-sky-300 flex items-center gap-1.5 backdrop-blur-md">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                      <span>{t('requested')}</span>
                     </span>
                   </div>
                 )}

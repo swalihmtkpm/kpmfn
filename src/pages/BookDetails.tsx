@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Home,
   MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FullPageLoader } from '@/components/LoadingIndicator';
@@ -123,6 +124,14 @@ export default function BookDetails() {
   });
 
   const [stars, setStars] = useState(0);
+
+  const isPendingRequested = useMemo(() => {
+    if (!id && !book?.id) return false;
+    const reqs = dataService.getBorrowRequests();
+    return reqs.some(
+      (r) => (r.book_id === id || r.book_id === book?.id || (book?.book_code && r.book_id === book.book_code)) && r.status === 'pending'
+    );
+  }, [id, book]);
   const [reviewerName, setReviewerName] = useState(() => {
     try {
       return localStorage.getItem('imthiyaz_user_name') || '';
@@ -394,6 +403,8 @@ export default function BookDetails() {
   const publisherName = getEntityName(book.publishers, lang);
   const categoryName = getEntityName(book.categories, lang);
   const BackIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
+  const isBorrowed = book.status === 'borrowed' || !!activeBorrow;
+  const isMissed = book.status === 'missed';
 
   return (
     <Layout>
@@ -419,6 +430,31 @@ export default function BookDetails() {
           <div className="mx-auto md:mx-0 w-44 sm:w-52 md:w-full">
             <div className="relative aspect-[1/1.45] rounded-xl overflow-hidden bg-accent shadow-book-hover border border-border/60">
               <div className="book-spine-highlight" />
+
+              {/* Status indicator badges fixed on book cover */}
+              {isMissed ? (
+                <div className="absolute top-2.5 start-2.5 z-20">
+                  <span className="px-3 py-1 rounded-lg bg-destructive text-destructive-foreground text-xs font-black shadow-lg flex items-center gap-1.5 backdrop-blur-md">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{t('missed')}</span>
+                  </span>
+                </div>
+              ) : isBorrowed ? (
+                <div className="absolute top-2.5 start-2.5 z-20">
+                  <span className="px-3 py-1 rounded-lg bg-amber-500 text-amber-950 text-xs font-black shadow-lg border border-amber-300 flex items-center gap-1.5 backdrop-blur-md">
+                    <span className="w-2 h-2 rounded-full bg-amber-950 animate-pulse" />
+                    <span>{t('borrowed')}</span>
+                  </span>
+                </div>
+              ) : isPendingRequested ? (
+                <div className="absolute top-2.5 start-2.5 z-20">
+                  <span className="px-3 py-1 rounded-lg bg-sky-500 text-white text-xs font-black shadow-lg border border-sky-300 flex items-center gap-1.5 backdrop-blur-md">
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span>{t('requested')}</span>
+                  </span>
+                </div>
+              ) : null}
+
               {cover ? (
                 <img
                   src={cover}
@@ -449,14 +485,23 @@ export default function BookDetails() {
               </h1>
             </div>
 
+            {/* Status & Rating line */}
             <div className="flex items-center gap-3 flex-wrap">
               <StarRating value={Number(book.average_rating ?? 0)} readOnly />
               <span className="text-sm text-muted-foreground font-semibold">
                 {Number(book.average_rating ?? 0).toFixed(1)} ({book.ratings_count ?? 0})
               </span>
-              {activeBorrow ? (
+              {isMissed ? (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold">
+                  {t('missed')}
+                </span>
+              ) : isBorrowed ? (
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-warning/15 text-warning font-bold">
                   {t('currentlyBorrowed')}
+                </span>
+              ) : isPendingRequested ? (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold">
+                  {t('requested')}
                 </span>
               ) : (
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-success/15 text-success font-bold">
@@ -504,9 +549,26 @@ export default function BookDetails() {
               </div>
             )}
 
+            {/* Pending request banner */}
+            {!isMissed && !isBorrowed && isPendingRequested && (
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3.5 flex items-start gap-2.5 text-sky-700 dark:text-sky-300">
+                <Clock className="w-5 h-5 shrink-0 mt-0.5 text-sky-500" />
+                <div className="text-xs sm:text-sm">
+                  <p className="font-bold">
+                    {lang === 'ar' ? 'هذا الكتاب قيد طلب الاستعارة حالياً' : 'This book is currently requested'}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {lang === 'ar'
+                      ? 'هناك طلب استعارة مقدم لهذا الكتاب وهو قيد مراجعة إدارة المكتبة.'
+                      : 'There is a pending borrow request submitted for this book awaiting admin approval.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2.5 pt-2">
-              {book.status === 'missed' ? (
+              {isMissed ? (
                 <Button
                   disabled
                   variant="outline"
@@ -515,7 +577,25 @@ export default function BookDetails() {
                   <BookOpen className="w-4 h-4 me-1.5" />
                   <span>{t('bookMissedBadge')}</span>
                 </Button>
-              ) : !activeBorrow && (
+              ) : isBorrowed ? (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="h-11 rounded-xl px-6 font-bold border-warning/50 text-warning bg-warning/5 cursor-not-allowed opacity-80"
+                >
+                  <BookOpen className="w-4 h-4 me-1.5" />
+                  <span>{t('currentlyBorrowed')}</span>
+                </Button>
+              ) : isPendingRequested ? (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="h-11 rounded-xl px-6 font-bold border-sky-500/50 text-sky-600 dark:text-sky-400 bg-sky-500/5 cursor-not-allowed opacity-80"
+                >
+                  <BookOpen className="w-4 h-4 me-1.5" />
+                  <span>{lang === 'ar' ? 'طلب الاستعارة قيد المراجعة' : 'Request Pending Review'}</span>
+                </Button>
+              ) : (
                 <Button
                   onClick={() => setShowRequest(true)}
                   className="h-11 rounded-xl px-6 font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"

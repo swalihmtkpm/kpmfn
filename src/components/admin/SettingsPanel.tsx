@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
-import { Download, Upload, KeyRound, Globe2, BookOpen, Database, Users, Plus, Trash2 } from 'lucide-react';
+import { Download, Upload, KeyRound, Globe2, BookOpen, Database, Users, Plus, Trash2, Cloud, RefreshCw, Copy, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { PERMANENT_STORAGE_MIGRATION_SQL } from '@/lib/migrationSql';
 import { dataService } from '@/lib/dataService';
 
 const INFO_KEY = 'library_info';
@@ -32,6 +33,62 @@ export default function SettingsPanel() {
   const [pw2, setPw2] = useState('');
   const [info, setInfo] = useState<Info>({});
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [stats, setStats] = useState(() => ({
+    books: dataService.getBooks().length,
+    students: dataService.getStudents().length,
+    requests: dataService.getBorrowRequests().length,
+    records: dataService.getBorrowRecords().length,
+    readings: dataService.getReadingRecords().length,
+  }));
+
+  const refreshStats = () => {
+    setStats({
+      books: dataService.getBooks().length,
+      students: dataService.getStudents().length,
+      requests: dataService.getBorrowRequests().length,
+      records: dataService.getBorrowRecords().length,
+      readings: dataService.getReadingRecords().length,
+    });
+  };
+
+  useEffect(() => {
+    window.addEventListener('imthiyaz_data_updated', refreshStats);
+    return () => window.removeEventListener('imthiyaz_data_updated', refreshStats);
+  }, []);
+
+  const handleSyncCloud = async () => {
+    setSyncing(true);
+    try {
+      await dataService.syncFromSupabase();
+      refreshStats();
+      toast.success(lang === 'ar' ? 'تمت المزامنة السحابية بنجاح' : 'Cloud sync completed successfully.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Sync error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleClearAllData = () => {
+    const confirmMsg = lang === 'ar'
+      ? 'تحذير: هل أنت متأكد تماماً من رغبتك في مسح كافة البيانات الحالية (الكتب، الطلاب، سجلات وطلبات الاستعارة، نقاط المتصدرين)؟ سيتم تصفير المكتبة للبدء بسجل نظيف تماماً.'
+      : 'WARNING: Are you sure you want to permanently clear all current data (books, students, borrow records, borrow requests, leaderboard points)? This will reset to a clean empty library.';
+    if (!window.confirm(confirmMsg)) return;
+
+    dataService.clearAllData();
+    refreshStats();
+    toast.success(lang === 'ar' ? 'تم مسح كافة البيانات وتصفير المكتبة بنجاح' : 'All current data has been cleared.');
+  };
+
+  const handleCopyMigrationSql = () => {
+    try {
+      navigator.clipboard.writeText(PERMANENT_STORAGE_MIGRATION_SQL);
+      toast.success(lang === 'ar' ? 'تم نسخ كود SQL الخاص بالمزامنة السحابية الدائمة إلى الحافظة' : 'Permanent Cloud Migration SQL copied to clipboard.');
+    } catch {
+      toast.error('Failed to copy to clipboard.');
+    }
+  };
 
   useEffect(() => {
     (async () => {

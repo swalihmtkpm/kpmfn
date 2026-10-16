@@ -19,9 +19,10 @@ export default function Catalog() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'missed'>('all');
 
   useEffect(() => {
-    // Refresh books in case of updates
-    const list = dataService.getBooks();
-    setBooks(list);
+    const refresh = () => setBooks(dataService.getBooks());
+    refresh();
+    window.addEventListener('imthiyaz_data_updated', refresh);
+    return () => window.removeEventListener('imthiyaz_data_updated', refresh);
   }, []);
 
   useEffect(() => {
@@ -103,6 +104,7 @@ export default function Catalog() {
     book_code: b.book_code,
     category_name: lang === 'ar' ? b.category_name_ar : b.category_name_en || b.category_name_ar,
     status: b.status,
+    borrowState: dataService.getBookBorrowState(b.id),
   }));
 
   const clearFilters = () => {

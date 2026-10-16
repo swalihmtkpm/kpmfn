@@ -57,6 +57,8 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadData();
+    window.addEventListener('imthiyaz_data_updated', loadData);
+    return () => window.removeEventListener('imthiyaz_data_updated', loadData);
   }, []);
 
   const loadData = async () => {
@@ -161,7 +163,7 @@ export default function Leaderboard() {
                   <span>{isRTL ? 'منافسة القراءة والمعرفة' : 'Reading Championship & Points'}</span>
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-black font-amiri tracking-tight">
-                  {isRTL ? 'لوحة المتصدرين' : 'Library Leaderboard'}
+                  {isRTL ? 'لوحة متصدري كتبخانة' : 'Kuthbkhana Leaderboard'}
                 </h1>
                 <p className="text-white/80 max-w-xl text-sm sm:text-base leading-relaxed">
                   {isRTL
