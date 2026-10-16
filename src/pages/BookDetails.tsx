@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { BookOpen, ArrowLeft, ArrowRight, BookMarked, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { FullPageLoader } from '@/components/LogoSpinner';
+import { dataService, convertDriveUrl } from '@/lib/dataService';
 
 type Detail = {
   id: string;
@@ -43,39 +44,137 @@ export default function BookDetails() {
   const { t, lang, dir } = useI18n();
   const shouldReduceMotion = useReducedMotion();
 
-  const [book, setBook] = useState<Detail | null>(null);
-  const [cover, setCover] = useState<string | null>(null);
+  // Instant synchronous initialization from dataService
+  const initialLocalBook = id ? dataService.getBookById(id) : undefined;
+
+  const [book, setBook] = useState<Detail | null>(() => {
+    if (!initialLocalBook) return null;
+    return {
+      id: initialLocalBook.id,
+      si_number: initialLocalBook.si_number,
+      book_code: initialLocalBook.book_code,
+      title_ar: initialLocalBook.title_ar,
+      title_en: initialLocalBook.title_en,
+      description_ar: initialLocalBook.description_ar || null,
+      volume: initialLocalBook.volume,
+      pages: initialLocalBook.pages,
+      cover_path: null,
+      full_text: null,
+      status: initialLocalBook.status,
+      average_rating: initialLocalBook.average_rating,
+      ratings_count: initialLocalBook.ratings_count,
+      authors: { name_ar: initialLocalBook.author_ar, name_en: initialLocalBook.author_en },
+      publishers: { name_ar: initialLocalBook.publisher_ar, name_en: initialLocalBook.publisher_en },
+      categories: { name_ar: initialLocalBook.category_name_ar, name_en: initialLocalBook.category_name_en },
+    };
+  });
+
+  const [cover, setCover] = useState<string | null>(() => {
+    if (!initialLocalBook?.cover_url) return null;
+    return convertDriveUrl(initialLocalBook.cover_url) || initialLocalBook.cover_url;
+  });
+
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [activeBorrow, setActiveBorrow] = useState<ActiveBorrow | null>(null);
+  const [activeBorrow, setActiveBorrow] = useState<ActiveBorrow | null>(() => {
+    if (!id) return null;
+    const activeRecord = dataService.getBorrowRecords().find(
+      (r) => (r.book_id === id || r.book_id === initialLocalBook?.id) && r.status === 'active'
+    );
+    return activeRecord ? { borrower_name: activeRecord.borrower_name, due_at: activeRecord.due_at } : null;
+  });
+
   const [stars, setStars] = useState(0);
   const [reviewerName, setReviewerName] = useState(() => localStorage.getItem('imthiyaz_user_name') || '');
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => !initialLocalBook);
   const [showRequest, setShowRequest] = useState(false);
   const [showReader, setShowReader] = useState(false);
 
   const load = async () => {
-    if (!id) return;
-    const { data } = await supabase.from('books')
-      .select('id, si_number, book_code, title_ar, title_en, description_ar, volume, pages, cover_path, full_text, status, average_rating, ratings_count, authors(name_ar, name_en), publishers(name_ar, name_en), categories(name_ar, name_en)')
-      .eq('id', id).maybeSingle();
-    setBook(data as Detail | null);
-    if (data?.cover_path) setCover(await signedCoverUrl(data.cover_path));
-    const { data: rv } = await supabase.from('reviews').select('id, reviewer_name, content, created_at').eq('book_id', id).order('created_at', { ascending: false });
-    setReviews((rv ?? []) as Review[]);
-    const { data: br } = await supabase.from('borrow_records')
-      .select('borrower_name, due_at')
-      .eq('book_id', id)
-      .is('returned_at', null)
-      .order('borrowed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setActiveBorrow(br as ActiveBorrow | null);
-    setLoading(false);
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // 1. Check dataService first
+      const localBook = dataService.getBookById(id);
+      if (localBook) {
+        setBook({
+          id: localBook.id,
+          si_number: localBook.si_number,
+          book_code: localBook.book_code,
+          title_ar: localBook.title_ar,
+          title_en: localBook.title_en,
+          description_ar: localBook.description_ar || null,
+          volume: localBook.volume,
+          pages: localBook.pages,
+          cover_path: null,
+          full_text: null,
+          status: localBook.status,
+          average_rating: localBook.average_rating,
+          ratings_count: localBook.ratings_count,
+          authors: { name_ar: localBook.author_ar, name_en: localBook.author_en },
+          publishers: { name_ar: localBook.publisher_ar, name_en: localBook.publisher_en },
+          categories: { name_ar: localBook.category_name_ar, name_en: localBook.category_name_en },
+        });
+
+        if (localBook.cover_url) {
+          setCover(convertDriveUrl(localBook.cover_url) || localBook.cover_url);
+        }
+
+        const activeRecord = dataService.getBorrowRecords().find(
+          (r) => (r.book_id === id || r.book_id === localBook.id) && r.status === 'active'
+        );
+        if (activeRecord) {
+          setActiveBorrow({
+            borrower_name: activeRecord.borrower_name,
+            due_at: activeRecord.due_at,
+          });
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback to Supabase with strict 1.5s timeout to prevent infinite spinner
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
+      const supabaseQuery = supabase.from('books')
+        .select('id, si_number, book_code, title_ar, title_en, description_ar, volume, pages, cover_path, full_text, status, average_rating, ratings_count, authors(name_ar, name_en), publishers(name_ar, name_en), categories(name_ar, name_en)')
+        .eq('id', id).maybeSingle();
+
+      const { data } = await (Promise.race([supabaseQuery, timeoutPromise]) as Promise<any>);
+
+      if (data) {
+        setBook(data as Detail | null);
+        if (data?.cover_path) setCover(await signedCoverUrl(data.cover_path));
+        const { data: rv } = await supabase.from('reviews').select('id, reviewer_name, content, created_at').eq('book_id', id).order('created_at', { ascending: false });
+        setReviews((rv ?? []) as Review[]);
+        const { data: br } = await supabase.from('borrow_records')
+          .select('borrower_name, due_at')
+          .eq('book_id', id)
+          .is('returned_at', null)
+          .order('borrowed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setActiveBorrow(br as ActiveBorrow | null);
+      }
+    } catch (e) {
+      console.warn('Note on book details load:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { setLoading(true); load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
+  useEffect(() => {
+    // If not loaded yet, initiate load
+    if (!book) {
+      setLoading(true);
+    }
+    load();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [id]);
 
   const saveName = (v: string) => { setReviewerName(v); localStorage.setItem('imthiyaz_user_name', v); };
 
@@ -189,8 +288,19 @@ export default function BookDetails() {
               {book.pages != null && <Meta label={t('pages')} value={String(book.pages)} />}
             </div>
 
+            {/* Missed Book Warning Notice (Prompt requirement) */}
+            {book.status === 'missed' && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 flex items-start gap-2.5 text-destructive">
+                <BookOpen className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold">{t('bookMissedBadge')}</p>
+                  <p className="text-xs mt-0.5 opacity-90">{t('missedBookNotice')}</p>
+                </div>
+              </div>
+            )}
+
             {/* Currently Borrowed Notice */}
-            {activeBorrow && (
+            {activeBorrow && book.status !== 'missed' && (
               <div className="rounded-xl border border-warning/30 bg-warning/5 p-3.5 flex items-start gap-2.5">
                 <BookMarked className="w-5 h-5 text-warning mt-0.5 shrink-0" />
                 <div className="text-sm">
@@ -209,7 +319,16 @@ export default function BookDetails() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2.5 pt-2">
-              {!activeBorrow && (
+              {book.status === 'missed' ? (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="rounded-xl px-6 font-bold border-destructive/50 text-destructive bg-destructive/5 cursor-not-allowed opacity-80"
+                >
+                  <BookOpen className="w-4 h-4 me-1.5" />
+                  <span>{t('bookMissedBadge')}</span>
+                </Button>
+              ) : !activeBorrow && (
                 <Button
                   onClick={() => setShowRequest(true)}
                   className="rounded-xl px-6 font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -302,7 +421,13 @@ export default function BookDetails() {
         </div>
       </motion.div>
 
-      <BorrowRequestModal bookId={book.id} open={showRequest} onClose={() => setShowRequest(false)} />
+      <BorrowRequestModal
+        bookId={book.id}
+        bookTitle={title}
+        isMissed={book.status === 'missed'}
+        open={showRequest}
+        onClose={() => setShowRequest(false)}
+      />
       {book.full_text && (
         <BookReader bookId={book.id} title={title} text={book.full_text} open={showReader} onClose={() => setShowReader(false)} />
       )}

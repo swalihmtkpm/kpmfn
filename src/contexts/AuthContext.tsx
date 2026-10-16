@@ -16,6 +16,7 @@ type AuthCtx = {
   profile: Profile | null;
   isAdmin: boolean;
   loading: boolean;
+  setAdminSession: (val: boolean) => void;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, username: string, fullName?: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -29,19 +30,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('imthiyaz_admin_session') === '1';
+    }
+    return false;
+  });
   const [loading, setLoading] = useState(true);
 
+  const setAdminSession = useCallback((val: boolean) => {
+    if (val) {
+      localStorage.setItem('imthiyaz_admin_session', '1');
+      setIsAdmin(true);
+    } else {
+      localStorage.removeItem('imthiyaz_admin_session');
+      setIsAdmin(false);
+    }
+  }, []);
+
   const loadProfile = useCallback(async (userId: string) => {
+    const isLocalAdmin = localStorage.getItem('imthiyaz_admin_session') === '1';
     const [{ data: prof }, { data: roles }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
     setProfile(prof as Profile | null);
-    setIsAdmin(!!roles?.some((r) => r.role === 'admin'));
+    setIsAdmin(isLocalAdmin || !!roles?.some((r) => r.role === 'admin'));
   }, []);
 
   useEffect(() => {
+    const isLocalAdmin = localStorage.getItem('imthiyaz_admin_session') === '1';
+    if (isLocalAdmin) {
+      setIsAdmin(true);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -49,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => loadProfile(s.user.id), 0);
       } else {
         setProfile(null);
-        setIsAdmin(false);
+        setIsAdmin(localStorage.getItem('imthiyaz_admin_session') === '1');
       }
       setLoading(false);
     });
@@ -82,7 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    setAdminSession(false);
+    await supabase.auth.signOut().catch(() => {});
   };
 
   const changePassword: AuthCtx['changePassword'] = async (newPassword) => {
@@ -100,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile]);
 
   return (
-    <Ctx.Provider value={{ user, session, profile, isAdmin, loading, signIn, signUp, signOut, changePassword, refreshProfile }}>
+    <Ctx.Provider value={{ user, session, profile, isAdmin, loading, setAdminSession, signIn, signUp, signOut, changePassword, refreshProfile }}>
       {children}
     </Ctx.Provider>
   );

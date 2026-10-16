@@ -18,6 +18,8 @@ import ForcePasswordChange from './components/ForcePasswordChange';
 import { LanguageProvider } from './lib/i18n';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+import Catalog from './pages/Catalog';
+
 const queryClient = new QueryClient();
 
 function AppShell() {
@@ -39,7 +41,8 @@ function AppShell() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/browse" element={<Browse />} />
+      <Route path="/catalog" element={<Catalog />} />
+      <Route path="/browse" element={<Catalog />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/book/:id" element={<BookDetails />} />
       <Route path="/admin/login" element={<AdminLogin />} />

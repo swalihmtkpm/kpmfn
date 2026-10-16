@@ -1,49 +1,33 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
-import { Check, X } from 'lucide-react';
-
-type Req = {
-  id: string; book_id: string; status: string; requester_type: string | null;
-  requester_name: string | null; requester_class: string | null; requester_phone: string | null;
-  requester_place: string | null; requester_address: string | null;
-  days_requested: number | null; expected_return_date: string | null;
-  notes: string | null; created_at: string;
-  books?: { title_ar: string; book_code: string | null } | null;
-};
+import { Check, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { dataService, BorrowRequest } from '@/lib/dataService';
 
 export default function BorrowRequestsManager() {
-  const { t } = useI18n();
-  const [rows, setRows] = useState<Req[]>([]);
+  const { t, lang } = useI18n();
+  const [rows, setRows] = useState<BorrowRequest[]>([]);
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
 
-  const load = async () => {
-    let q = supabase.from('borrow_requests').select('*, books(title_ar, book_code)').order('created_at', { ascending: false });
-    if (filter !== 'all') q = q.eq('status', filter);
-    const { data } = await q;
-    setRows((data ?? []) as any);
-  };
-  useEffect(() => { load(); }, [filter]);
-
-  const decide = async (r: Req, action: 'approved' | 'rejected') => {
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from('borrow_requests').update({
-      status: action, decided_by: u.user?.id ?? null, decided_at: new Date().toISOString(),
-    }).eq('id', r.id);
-    if (error) return toast.error(error.message);
-
-    if (action === 'approved') {
-      await supabase.from('borrow_records').insert({
-        request_id: r.id, book_id: r.book_id, record_type: 'physical',
-        borrower_name: r.requester_name, due_at: r.expected_return_date ? new Date(r.expected_return_date).toISOString() : null,
-      });
-      await supabase.from('books').update({ status: 'borrowed' }).eq('id', r.book_id);
+  const load = () => {
+    const list = dataService.getBorrowRequests();
+    if (filter === 'all') {
+      setRows(list);
+    } else {
+      setRows(list.filter((r) => r.status === filter));
     }
-    toast.success(t('saved'));
+  };
+
+  useEffect(() => {
+    load();
+  }, [filter]);
+
+  const decide = (r: BorrowRequest, action: 'approved' | 'rejected') => {
+    dataService.updateBorrowRequestStatus(r.id, action);
+    toast.success(action === 'approved' ? (lang === 'ar' ? 'تمت الموافقة على الطلب بنجاح' : 'Request approved') : (lang === 'ar' ? 'تم رفض الطلب' : 'Request rejected'));
     load();
   };
 
@@ -60,14 +44,17 @@ export default function BorrowRequestsManager() {
           <Card key={r.id} className="p-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="space-y-1 text-sm">
-                <p className="font-bold">{r.books?.title_ar} <span className="text-xs text-muted-foreground">{r.books?.book_code}</span></p>
-                <p><b>{t('yourName')}:</b> {r.requester_name} <span className="text-xs text-muted-foreground">({r.requester_type})</span></p>
+                <p className="font-bold text-base text-foreground">{r.book_title}</p>
+                <p>
+                  <b>{t('yourName')}:</b> {r.requester_name}
+                  {r.requester_spr_id && <span className="text-xs font-mono font-bold text-primary ms-1">({r.requester_spr_id})</span>}
+                  <span className="text-xs text-muted-foreground ms-1">({r.requester_type})</span>
+                </p>
                 {r.requester_class && <p><b>{t('class')}:</b> {r.requester_class}</p>}
                 {r.requester_phone && <p><b>{t('phone')}:</b> {r.requester_phone}</p>}
                 {r.requester_place && <p><b>{t('place')}:</b> {r.requester_place}</p>}
                 {r.requester_address && <p><b>{t('address')}:</b> {r.requester_address}</p>}
                 <p><b>{t('days')}:</b> {r.days_requested} · <b>{t('expectedReturn')}:</b> {r.expected_return_date}</p>
-                {r.notes && <p className="text-muted-foreground">{r.notes}</p>}
                 <p className="text-[11px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
               </div>
               <div className="flex flex-col items-end gap-2">

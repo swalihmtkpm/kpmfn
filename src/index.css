@@ -6,106 +6,105 @@
 
 @layer base {
   :root {
-    /* Islamic Deep Green & White Visual Identity (Default Light) */
+    /* Brand Theme Picked Directly from the Logo (Deep Royal Indigo & Violet) */
     --background: 0 0% 100%;
-    --foreground: 160 40% 12%;
+    --foreground: 258 45% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 40% 12%;
+    --card-foreground: 258 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 40% 12%;
+    --popover-foreground: 258 45% 12%;
 
-    /* Deep Emerald Green matching Islamic minimalism (#0b4d32 & #108a5c) */
-    --primary: 158 68% 22%;
+    /* Exact Royal Purple / Indigo extracted from logo (#5b2fc4 & #4f1fa8) */
+    --primary: 258 65% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 158 66% 36%;
-    --primary-light: 158 45% 95%;
+    --primary-glow: 258 60% 55%;
+    --primary-light: 258 45% 96%;
 
-    --secondary: 158 35% 96%;
-    --secondary-foreground: 158 68% 20%;
+    --secondary: 258 35% 97%;
+    --secondary-foreground: 258 65% 25%;
 
-    --muted: 158 15% 95%;
-    --muted-foreground: 160 15% 44%;
+    --muted: 258 15% 96%;
+    --muted-foreground: 258 12% 46%;
 
-    --accent: 158 35% 94%;
-    --accent-foreground: 158 68% 18%;
+    --accent: 258 35% 95%;
+    --accent-foreground: 258 65% 22%;
 
-    --destructive: 0 75% 48%;
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 152 65% 36%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 160 40% 12%;
+    --warning-foreground: 258 45% 12%;
 
-    --border: 158 20% 90%;
-    --input: 158 20% 90%;
-    --ring: 158 68% 26%;
+    --border: 258 20% 90%;
+    --input: 258 20% 90%;
+    --ring: 258 65% 42%;
 
-    --brand: 158 68% 26%;
+    --brand: 258 65% 42%;
     --brand-foreground: 0 0% 100%;
 
-    --radius: 1rem;
+    --radius: 0.875rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(158 72% 19%) 0%, hsl(158 64% 30%) 100%);
-    --gradient-hero: linear-gradient(170deg, hsl(158 75% 18%) 0%, hsl(158 65% 26%) 60%, hsl(158 55% 34%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(158 30% 98%) 100%);
-    --gradient-medallion: radial-gradient(circle at center, hsl(158 68% 36% / 0.16) 0%, transparent 70%);
+    --gradient-primary: linear-gradient(135deg, hsl(258 70% 38%) 0%, hsl(258 60% 48%) 100%);
+    --gradient-hero: linear-gradient(170deg, hsl(258 55% 98%) 0%, hsl(258 45% 95%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(258 30% 99%) 100%);
 
-    --shadow-soft: 0 2px 10px -2px hsl(158 60% 15% / 0.08);
-    --shadow-md: 0 8px 24px -4px hsl(158 60% 15% / 0.10);
-    --shadow-lg: 0 16px 40px -8px hsl(158 60% 15% / 0.18);
-    --shadow-book: 0 10px 24px -5px hsl(158 70% 10% / 0.16), 0 3px 8px -2px hsl(158 70% 10% / 0.08);
-    --shadow-book-hover: 0 20px 36px -8px hsl(158 70% 10% / 0.28), 0 6px 14px -3px hsl(158 70% 10% / 0.12);
+    /* Reduced, clean international standard shadows (NO neon glow bleeding) */
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    --shadow-book: 0 4px 12px -2px rgba(35, 15, 80, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-book-hover: 0 12px 24px -4px rgba(35, 15, 80, 0.18), 0 4px 8px -2px rgba(0, 0, 0, 0.06);
   }
 
   .dark {
-    /* Coordinated Dark-Mode Experience (Deep Obsidian Emerald) */
-    --background: 160 38% 7%;
-    --foreground: 150 15% 96%;
+    /* Coordinated Dark-Mode Experience (Deep Obsidian Violet) */
+    --background: 258 35% 8%;
+    --foreground: 258 20% 98%;
 
-    --card: 160 28% 11%;
-    --card-foreground: 150 15% 96%;
+    --card: 258 28% 12%;
+    --card-foreground: 258 20% 98%;
 
-    --popover: 160 28% 11%;
-    --popover-foreground: 150 15% 96%;
+    --popover: 258 28% 12%;
+    --popover-foreground: 258 20% 98%;
 
-    --primary: 158 65% 48%;
-    --primary-foreground: 160 40% 7%;
-    --primary-glow: 158 75% 58%;
-    --primary-light: 160 30% 15%;
+    --primary: 258 75% 65%;
+    --primary-foreground: 258 40% 8%;
+    --primary-glow: 258 75% 70%;
+    --primary-light: 258 30% 16%;
 
-    --secondary: 160 25% 16%;
-    --secondary-foreground: 150 15% 96%;
+    --secondary: 258 25% 16%;
+    --secondary-foreground: 258 20% 98%;
 
-    --muted: 160 20% 18%;
-    --muted-foreground: 158 12% 65%;
+    --muted: 258 20% 18%;
+    --muted-foreground: 258 12% 66%;
 
-    --accent: 160 30% 18%;
-    --accent-foreground: 150 15% 96%;
+    --accent: 258 30% 18%;
+    --accent-foreground: 258 20% 98%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 160 22% 20%;
-    --input: 160 22% 20%;
-    --ring: 158 65% 48%;
+    --border: 258 22% 20%;
+    --input: 258 22% 20%;
+    --ring: 258 75% 65%;
 
-    --brand: 158 65% 48%;
-    --brand-foreground: 160 40% 7%;
+    --brand: 258 75% 65%;
+    --brand-foreground: 258 40% 8%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(160 35% 12%) 0%, hsl(158 50% 22%) 100%);
-    --gradient-hero: linear-gradient(170deg, hsl(160 40% 9%) 0%, hsl(160 35% 14%) 60%, hsl(158 45% 18%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(160 28% 11%) 0%, hsl(160 28% 9%) 100%);
-    --gradient-medallion: radial-gradient(circle at center, hsl(158 65% 48% / 0.18) 0%, transparent 70%);
+    --gradient-primary: linear-gradient(135deg, hsl(258 35% 16%) 0%, hsl(258 50% 26%) 100%);
+    --gradient-hero: linear-gradient(170deg, hsl(258 35% 10%) 0%, hsl(258 30% 13%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(258 28% 12%) 0%, hsl(258 28% 10%) 100%);
 
-    --shadow-soft: 0 2px 10px -2px hsl(0 0% 0% / 0.35);
-    --shadow-md: 0 8px 24px -4px hsl(0 0% 0% / 0.45);
-    --shadow-lg: 0 16px 40px -8px hsl(0 0% 0% / 0.60);
-    --shadow-book: 0 10px 24px -5px hsl(0 0% 0% / 0.55);
-    --shadow-book-hover: 0 20px 36px -8px hsl(158 65% 48% / 0.25), 0 6px 16px -3px hsl(0 0% 0% / 0.7);
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --shadow-book: 0 6px 14px -3px rgba(0, 0, 0, 0.6);
+    --shadow-book-hover: 0 14px 26px -4px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -140,33 +139,34 @@
   .shadow-book { box-shadow: var(--shadow-book); }
   .shadow-book-hover { box-shadow: var(--shadow-book-hover); }
 
-  /* STRICT 3 cards per row on mobile, exactly 5 cards per row on desktop */
+  /* STRICT 5 cards per row on desktop, responsive for mobile */
   .book-grid {
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  @media (min-width: 768px) {
+  @media (min-width: 640px) {
     .book-grid {
-      gap: 1.5rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .book-grid {
       grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1.25rem;
     }
   }
 
-  /* Book Cover 3D Spine and Sheen Illusion */
-  .book-cover-frame {
+  /* Red Shading for Missed Books: Requested requirement */
+  .book-missed {
     position: relative;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    background-color: hsl(var(--accent));
-    box-shadow: var(--shadow-book);
-    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-    transform-origin: center center;
+    border-color: hsl(0 75% 55% / 0.5) !important;
+    background-color: hsl(0 75% 55% / 0.06) !important;
   }
-  .book-cover-frame:hover {
-    transform: translateY(-4px) scale(1.025);
-    box-shadow: var(--shadow-book-hover);
+  .dark .book-missed {
+    border-color: hsl(0 75% 60% / 0.6) !important;
+    background-color: hsl(0 75% 60% / 0.12) !important;
   }
 
   /* Subtle book spine edge highlight (LTR & RTL aware) */
@@ -175,7 +175,7 @@
     inset-block: 0;
     inset-inline-end: 0;
     width: 6px;
-    background: linear-gradient(to left, rgba(0,0,0,0.18), transparent);
+    background: linear-gradient(to left, rgba(0,0,0,0.14), transparent);
     pointer-events: none;
     z-index: 5;
   }
@@ -184,115 +184,48 @@
     inset-block: 0;
     inset-inline-start: 0;
     width: 6px;
-    background: linear-gradient(to right, rgba(0,0,0,0.18), transparent);
+    background: linear-gradient(to right, rgba(0,0,0,0.14), transparent);
     pointer-events: none;
     z-index: 5;
   }
-
-  /* Islamic Calligraphy Medallion Glow */
-  .medallion-halo {
-    position: relative;
-  }
-  .medallion-halo::after {
-    content: '';
-    position: absolute;
-    inset: -15%;
-    border-radius: 9999px;
-    background: radial-gradient(circle, hsl(var(--primary-glow) / 0.22) 0%, transparent 70%);
-    z-index: 0;
-    pointer-events: none;
-    animation: pulse-glow 6s ease-in-out infinite alternate;
-  }
-
-  /* Clip Path Reveal for Banners & Features */
-  .clip-reveal-banner {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-    animation: clip-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  /* Islamic Geometric Lattice Texture */
-  .islamic-pattern-bg {
-    background-image: radial-gradient(hsl(var(--primary) / 0.08) 1.5px, transparent 1.5px),
-                      radial-gradient(hsl(var(--primary) / 0.04) 1.5px, transparent 1.5px);
-    background-size: 28px 28px;
-    background-position: 0 0, 14px 14px;
-  }
 }
 
-/* Animations */
-@keyframes pulse-glow {
-  0% { transform: scale(0.96); opacity: 0.6; }
-  100% { transform: scale(1.06); opacity: 1; }
+/* Very Slow Automatic Horizontal Moving Animation for Categories (Prompt requirement) */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee-scroll-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
 }
 
-@keyframes clip-reveal {
-  0% {
-    clip-path: polygon(0 0, 0 0, 0 100%, 0% 100%);
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  100% {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-    opacity: 1;
-    transform: scale(1);
-  }
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 55s linear infinite;
+  will-change: transform;
+}
+html[dir='rtl'] .animate-marquee-slow {
+  animation: marquee-scroll-rtl 55s linear infinite;
+}
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
 }
 
+/* Smooth slide animations */
 @keyframes float-subtle {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-4px); }
 }
 .animate-float-subtle {
-  animation: float-subtle 5s ease-in-out infinite;
-}
-
-@keyframes spin-cw {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.animate-spin-cw {
-  animation: spin-cw 2s linear infinite;
-  transform-origin: 50% 50%;
-}
-
-@keyframes logo-pop {
-  0% { transform: scale(0.6); opacity: 0; }
-  60% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.logo-adaptive {
-  transition: filter 0.25s ease;
-}
-.dark .logo-adaptive {
-  filter: brightness(0) invert(1);
-}
-
-@keyframes shine {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.shine-text {
-  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 50%, hsl(var(--primary)) 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shine 3.5s linear infinite;
-}
-
-/* Micro interaction transitions */
-.smooth-press {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.smooth-press:active {
-  transform: scale(0.96);
+  animation: float-subtle 4s ease-in-out infinite;
 }
 
 /* Scrollbar refinement */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -302,7 +235,7 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.4);
+  background: hsl(var(--primary) / 0.5);
 }
 
 /* Respect Reduced Motion Preferences */
@@ -313,10 +246,8 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .animate-spin-cw,
-  .animate-float-subtle,
-  .medallion-halo::after,
-  .shine-text {
+  .animate-marquee-slow,
+  .animate-float-subtle {
     animation: none !important;
   }
 }

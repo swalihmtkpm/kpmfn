@@ -15,7 +15,7 @@ const usernameToEmail = (u: string) => `${u.trim().toLowerCase()}@${ADMIN_EMAIL_
 
 export default function AdminLogin() {
   const { t } = useI18n();
-  const { refreshProfile, isAdmin } = useAuth();
+  const { refreshProfile, isAdmin, setAdminSession } = useAuth();
   const navigate = useNavigate();
   // Already signed in as admin? Go straight to the dashboard.
   useEffect(() => { if (isAdmin) navigate('/admin', { replace: true }); }, [isAdmin, navigate]);
@@ -26,6 +26,17 @@ export default function AdminLogin() {
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Explicit Admin Password requirement: 159357123
+    if (password.trim() === '159357123') {
+      setAdminSession(true);
+      const email = usernameToEmail(username);
+      await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+      setLoading(false);
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     const email = usernameToEmail(username);
 
     // Try sign-in first

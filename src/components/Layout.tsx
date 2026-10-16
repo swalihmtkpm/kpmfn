@@ -52,40 +52,54 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   };
 
-  const navItems = [
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close settings menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setSettingsOpen(false);
+      }
+    }
+    if (settingsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [settingsOpen]);
+
+  // Desktop header navigation items (Settings removed as requested)
+  const headerNavItems = [
     { label: t('home'), path: '/', icon: Home },
-    { label: t('catalog'), path: '/#catalog', icon: BookOpen },
+    { label: t('catalog'), path: '/catalog', icon: BookOpen },
+  ];
+
+  // Mobile bottom navigation items
+  const mobileNavItems = [
+    { label: t('home'), path: '/', icon: Home },
+    { label: t('catalog'), path: '/catalog', icon: BookOpen },
     { label: t('categories'), path: '/browse', icon: FolderOpen },
     { label: t('settingsHeader'), path: '/settings', icon: SettingsIcon },
   ];
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/' && !location.hash;
-    if (path === '/#catalog') return location.pathname === '/' && location.hash === '#catalog';
     return location.pathname === path;
   };
 
   const handleNavClick = (path: string) => {
-    if (path === '/#catalog') {
-      if (location.pathname !== '/') {
-        navigate('/#catalog');
-      } else {
-        const el = document.getElementById('catalog');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-        else window.scrollTo({ top: 400, behavior: 'smooth' });
-      }
-    } else {
-      navigate(path);
-      if (path === '/' && location.pathname === '/') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    navigate(path);
+    if (path === '/' && location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300">
-      {/* Top Header - Desktop Style 1 & Mobile Style 3 Header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md transition-all">
+      {/* Top Header - Clean International Standard Layout */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur-md transition-all">
         <div className="max-w-6xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-3">
           {/* Logo & Brand Name */}
           <div className="flex items-center gap-2.5">
@@ -98,7 +112,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <img
                   src="/library-logo.png"
                   alt=""
-                  className="w-9 h-9 md:w-10 md:h-10 object-contain logo-adaptive"
+                  className="w-9 h-9 md:w-10 md:h-10 object-contain"
                   draggable={false}
                 />
               </div>
@@ -106,7 +120,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <img
                   src="/library-name.png"
                   alt={t('appName')}
-                  className="h-6 md:h-7 object-contain logo-adaptive"
+                  className="h-6 md:h-7 object-contain"
                   draggable={false}
                 />
                 <div className="text-[11px] text-muted-foreground hidden sm:flex items-center gap-1 mt-0.5 font-medium">
@@ -117,15 +131,15 @@ export default function Layout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          {/* Desktop Navigation Links - Style 1 (Image 1 Inspiration) */}
-          <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 bg-secondary/60 px-3 py-1.5 rounded-full border border-border/50">
-            {navItems.map((item) => {
+          {/* Desktop Navigation Links - Clean & Centered (Settings text removed) */}
+          <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 bg-secondary/70 px-3 py-1.5 rounded-full border border-border/60">
+            {headerNavItems.map((item) => {
               const active = isActive(item.path);
               return (
                 <button
                   key={item.path}
                   onClick={() => handleNavClick(item.path)}
-                  className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  className={`relative px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
                     active
                       ? 'text-primary-foreground bg-primary shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
@@ -137,30 +151,93 @@ export default function Layout({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Quick Language Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleLanguage}
-              className="h-9 px-2.5 text-xs font-semibold gap-1.5 rounded-xl border border-transparent hover:border-border hover:bg-accent/60"
-              title={t('chooseLanguage')}
-            >
-              <Globe className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline uppercase">{lang === 'ar' ? 'English' : 'العربية'}</span>
-            </Button>
+          {/* Right Action Items: Settings Icon with Menu, Admin Controls */}
+          <div className="flex items-center gap-2">
+            {/* Settings Icon Popover Menu (Dark mode and Language moved here, standalone buttons removed from header) */}
+            <div className="relative" ref={settingsRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className={`w-9 h-9 rounded-xl border transition-all ${
+                  settingsOpen ? 'border-primary bg-primary/10 text-primary' : 'border-border/60 hover:bg-accent text-foreground'
+                }`}
+                title={t('settingsHeader')}
+                aria-label="Settings"
+              >
+                <SettingsIcon className={`w-4 h-4 transition-transform duration-300 ${settingsOpen ? 'rotate-90 text-primary' : ''}`} />
+              </Button>
 
-            {/* Quick Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="w-9 h-9 rounded-xl border border-transparent hover:border-border hover:bg-accent/60 text-muted-foreground hover:text-foreground"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-primary" />}
-            </Button>
+              {/* Settings Dropdown Popover */}
+              {settingsOpen && (
+                <div className="absolute end-0 mt-2 w-64 bg-card border border-border/80 rounded-2xl shadow-lg p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2.5 py-1.5 text-xs font-bold text-muted-foreground border-b border-border/60 mb-1 flex items-center justify-between">
+                    <span>{t('settingsHeader')}</span>
+                    <SettingsIcon className="w-3.5 h-3.5 text-primary" />
+                  </div>
+
+                  {/* Dark Mode Toggle inside Settings Menu */}
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      {theme === 'dark' ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                      <span>{t('theme')}</span>
+                    </div>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-secondary text-foreground">
+                      {theme === 'dark' ? t('dark') : t('light')}
+                    </span>
+                  </button>
+
+                  {/* Language Switcher inside Settings Menu */}
+                  <button
+                    onClick={() => {
+                      toggleLanguage();
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-primary" />
+                      <span>{t('language')}</span>
+                    </div>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-secondary text-primary uppercase">
+                      {lang === 'ar' ? 'العربية' : 'English'}
+                    </span>
+                  </button>
+
+                  <div className="my-1 border-t border-border/60" />
+
+                  {/* Full Settings Page link */}
+                  <button
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      navigate('/settings');
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-colors text-start"
+                  >
+                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <span>{t('libraryInfo')}</span>
+                  </button>
+
+                  {/* Admin Login shortcut if not logged in */}
+                  {!isAdmin && (
+                    <button
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        navigate('/admin/login');
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors text-start"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-primary" />
+                      <span>{t('adminLogin')}</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Admin Controls */}
             {isAdmin && (
@@ -169,10 +246,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate('/admin')}
-                  className="gap-1.5 h-9 rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="gap-1.5 h-9 rounded-xl border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground font-bold"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span className="hidden lg:inline text-xs font-bold">{t('adminPanel')}</span>
+                  <span className="hidden sm:inline text-xs">{t('adminPanel')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -215,7 +292,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Mobile Floating Glassmorphism Bottom Navigation Bar - Style 3 (Image 3 Inspiration) */}
       <nav className="md:hidden fixed bottom-3 inset-x-3 z-40">
         <div className="bg-background/90 backdrop-blur-xl border border-border/70 shadow-lg rounded-2xl px-2 py-1.5 grid grid-cols-4 gap-1">
-          {navItems.map((item) => {
+          {mobileNavItems.map((item) => {
             const active = isActive(item.path);
             const Icon = item.icon;
             return (

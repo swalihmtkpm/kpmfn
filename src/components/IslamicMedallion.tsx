@@ -5,7 +5,7 @@ type Props = {
   size?: number;
 };
 
-export default function IslamicMedallion({ className = '', size = 280 }: Props) {
+export default function IslamicMedallion({ className = '', size = 240 }: Props) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -13,32 +13,18 @@ export default function IslamicMedallion({ className = '', size = 280 }: Props) 
       className={`relative flex items-center justify-center select-none ${className}`}
       style={{ width: size, height: size }}
     >
-      {/* Outer Emerald Breathing Glow Halo (Image 1 Inspiration) */}
+      {/* Crisp, clean outer ring without excessive neon glow */}
       <div
-        className="absolute inset-[-10%] rounded-full pointer-events-none transition-all duration-700"
-        style={{
-          background: 'radial-gradient(circle, hsl(var(--primary-glow) / 0.28) 0%, hsl(var(--primary) / 0.1) 45%, transparent 70%)',
-          filter: 'blur(16px)',
-        }}
-      />
-
-      {/* Outer Arabesque Ring */}
-      <div
-        className="relative w-full h-full rounded-full p-2 bg-gradient-to-b from-white via-primary/5 to-primary/15 dark:from-card dark:via-card/90 dark:to-primary/20 shadow-xl border border-primary/20 flex items-center justify-center animate-float-subtle overflow-hidden"
-        style={{
-          boxShadow: '0 20px 45px -10px hsl(var(--primary) / 0.25), 0 0 0 1px hsl(var(--primary) / 0.1)',
-        }}
+        className="relative w-full h-full rounded-full p-2 bg-gradient-to-b from-white via-primary/5 to-primary/10 dark:from-card dark:via-card/90 dark:to-primary/20 shadow-md border border-primary/20 flex items-center justify-center overflow-hidden"
       >
-        {/* Subtle decorative inner border */}
-        <div className="absolute inset-2 rounded-full border border-dashed border-primary/30 pointer-events-none" />
+        <div className="absolute inset-2 rounded-full border border-dashed border-primary/20 pointer-events-none" />
 
-        {/* Content: High-resolution Calligraphy Art or Library Emblem */}
         {!imgError ? (
           <div className="relative w-[85%] h-[85%] rounded-full bg-white dark:bg-card/90 flex items-center justify-center p-3 shadow-inner overflow-hidden">
             <img
               src="/library-logo.png"
               alt="Makthabathul Imthiyaz Emblem"
-              className="w-full h-full object-contain logo-adaptive drop-shadow-sm transition-transform duration-500 hover:scale-105"
+              className="w-full h-full object-contain drop-shadow-sm transition-transform duration-500 hover:scale-105"
               onError={() => setImgError(true)}
               draggable={false}
             />
@@ -58,9 +44,6 @@ export default function IslamicMedallion({ className = '', size = 280 }: Props) 
             </svg>
           </div>
         )}
-
-        {/* Delicate radial shine accent */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
       </div>
     </div>
   );
