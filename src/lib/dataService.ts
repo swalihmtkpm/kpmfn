@@ -100,6 +100,47 @@ export type RatingRecord = {
   created_at: string;
 };
 
+export type ReadingStatus = 'full' | 'custom' | 'not_read';
+
+export type ReadingRecord = {
+  id: string;
+  borrow_record_id?: string;
+  student_id?: string;
+  student_name: string;
+  student_spr_id?: string;
+  book_id: string;
+  book_title: string;
+  book_pages: number;
+  reading_status: ReadingStatus;
+  pages_read: number;
+  points_awarded: number;
+  awarded_at: string;
+  notes?: string;
+};
+
+export type LeaderboardSettings = {
+  points_per_10_pages: number; // e.g. 4 points per 10 pages read
+  is_hidden_from_public: boolean;
+};
+
+export type LeaderboardEntry = {
+  rank: number;
+  student_id?: string;
+  student_name: string;
+  student_spr_id?: string;
+  total_points: number;
+  books_completed: number;
+  total_pages_read: number;
+  readings: ReadingRecord[];
+};
+
+export type LeaderboardSnapshot = {
+  id: string;
+  name: string;
+  created_at: string;
+  entries: LeaderboardEntry[];
+};
+
 /**
  * Converts any Google Drive URL into a direct, high-performance displayable URL.
  * Supports:
@@ -139,7 +180,86 @@ const STORAGE_KEYS = {
   CATEGORIES: 'imthiyaz_categories_v2',
   REVIEWS: 'imthiyaz_reviews_v2',
   RATINGS: 'imthiyaz_ratings_v2',
+  READING_RECORDS: 'imthiyaz_reading_records_v2',
+  LEADERBOARD_SETTINGS: 'imthiyaz_leaderboard_settings_v2',
+  LEADERBOARD_SNAPSHOTS: 'imthiyaz_leaderboard_snapshots_v2',
 };
+
+export const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
+  points_per_10_pages: 4,
+  is_hidden_from_public: false,
+};
+
+export const DEFAULT_READING_RECORDS: ReadingRecord[] = [
+  {
+    id: 'read-1',
+    student_id: 'std-1',
+    student_name: 'عبد الله بن أحمد الفلاني',
+    student_spr_id: 'SPR0156',
+    book_id: 'b0000001-0000-0000-0000-000000000001',
+    book_title: 'صحيح البخاري - الجامع الصحيح المختصر',
+    book_pages: 1824,
+    reading_status: 'full',
+    pages_read: 1824,
+    points_awarded: 730,
+    awarded_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+    notes: 'قراءة كاملة ومتقنة',
+  },
+  {
+    id: 'read-2',
+    student_id: 'std-1',
+    student_name: 'عبد الله بن أحمد الفلاني',
+    student_spr_id: 'SPR0156',
+    book_id: 'b0000008-0000-0000-0000-000000000008',
+    book_title: 'رياض الصالحين من كلام سيد المرسلين',
+    book_pages: 680,
+    reading_status: 'full',
+    pages_read: 680,
+    points_awarded: 272,
+    awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    notes: 'إتمام كتاب رياض الصالحين',
+  },
+  {
+    id: 'read-3',
+    student_id: 'std-2',
+    student_name: 'محمد زين الدين المليباري',
+    student_spr_id: 'SPR0157',
+    book_id: 'b0000009-0000-0000-0000-000000000009',
+    book_title: 'فتح المعين بشرح قرة العين بمهمات الدين',
+    book_pages: 450,
+    reading_status: 'full',
+    pages_read: 450,
+    points_awarded: 180,
+    awarded_at: new Date(Date.now() - 6 * 86400000).toISOString(),
+  },
+  {
+    id: 'read-4',
+    student_id: 'std-2',
+    student_name: 'محمد زين الدين المليباري',
+    student_spr_id: 'SPR0157',
+    book_id: 'b0000004-0000-0000-0000-000000000004',
+    book_title: 'منهاج الطالبين وعمدة المفتين',
+    book_pages: 620,
+    reading_status: 'custom',
+    pages_read: 300,
+    points_awarded: 120,
+    awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    notes: 'قراءة 300 صفحة من كتاب المعاملات',
+  },
+  {
+    id: 'read-5',
+    student_id: 'std-3',
+    student_name: 'سالم بن عمر بافضل',
+    student_spr_id: 'SPR0158',
+    book_id: 'b0000007-0000-0000-0000-000000000007',
+    book_title: 'الرحيق المختوم في سيرة النبي المأمون',
+    book_pages: 520,
+    reading_status: 'full',
+    pages_read: 520,
+    points_awarded: 208,
+    awarded_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+  },
+];
 
 export const DEFAULT_REVIEWS: Review[] = [
   {
@@ -615,6 +735,15 @@ class DataService {
           if (row.key === 'library_requests_v2' && Array.isArray(row.value) && row.value.length > 0) {
             this.setItem(STORAGE_KEYS.REQUESTS, row.value);
           }
+          if (row.key === 'library_reading_records' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.READING_RECORDS, row.value);
+          }
+          if (row.key === 'library_leaderboard_settings' && row.value) {
+            this.setItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, row.value);
+          }
+          if (row.key === 'library_leaderboard_snapshots' && Array.isArray(row.value)) {
+            this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, row.value);
+          }
         }
       }
 
@@ -883,6 +1012,8 @@ class DataService {
         status: (r.status === 'missed' ? 'missed' : 'available') as BookStatus,
         average_rating: Number(r.average_rating) || 5.0,
         ratings_count: Number(r.ratings_count) || 1,
+        description_ar: r.description_ar?.trim() || '',
+        description_en: r.description_en?.trim() || '',
         created_at: new Date().toISOString(),
       });
       added++;
@@ -1233,6 +1364,8 @@ class DataService {
         'Status (available/missed)',
         'Cover Drive URL',
         'Category (Arabic)',
+        'Description (Arabic)',
+        'Description (English)',
       ],
       [
         'صحيح البخاري',
@@ -1247,6 +1380,8 @@ class DataService {
         'available',
         'https://drive.google.com/file/d/1example/view',
         'الحديث الشريف وعلومه',
+        'أصح كتاب بعد القرآن الكريم، يحتوي على أحاديث نبوية مسندة وصحيحة.',
+        'The most authentic Hadith compilation after the Holy Quran.',
       ],
       [
         'كتاب مفقود للتجربة',
@@ -1261,6 +1396,8 @@ class DataService {
         'missed',
         'https://drive.google.com/file/d/2example/view',
         'الفقه الشافعي وأصوله',
+        'كتاب تجريبي في الفقه',
+        'Sample jurisprudence manual',
       ],
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -1277,9 +1414,413 @@ class DataService {
       { wch: 14 },
       { wch: 35 },
       { wch: 20 },
+      { wch: 35 },
+      { wch: 30 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Books_Template');
     XLSX.writeFile(wb, 'Books_Bulk_Upload_Template.xlsx');
+  }
+
+  // Bulk Delete helpers
+  bulkDeleteBooks(ids: string[]): void {
+    const set = new Set(ids);
+    const list = this.getBooks().filter((b) => !set.has(b.id));
+    this.setItem(STORAGE_KEYS.BOOKS, list);
+    this.syncToCloud('library_books_v2', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidIds = ids.filter((id) => UUID_REGEX.test(id));
+        const codeIds = ids.filter((id) => !UUID_REGEX.test(id));
+        if (uuidIds.length > 0) {
+          await supabase.from('books').delete().in('id', uuidIds);
+        }
+        if (codeIds.length > 0) {
+          await supabase.from('books').delete().in('book_code', codeIds);
+        }
+      } catch (e) {
+        console.warn('bulkDeleteBooks notice:', e);
+      }
+    })();
+  }
+
+  bulkDeleteStudents(ids: string[]): void {
+    const set = new Set(ids);
+    const list = this.getStudents().filter((s) => !set.has(s.id));
+    this.setItem(STORAGE_KEYS.STUDENTS, list);
+    this.syncToCloud('library_students_v2', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidIds = ids.filter((id) => UUID_REGEX.test(id));
+        const sprIds = ids.filter((id) => !UUID_REGEX.test(id));
+        if (uuidIds.length > 0) {
+          await supabase.from('students').delete().in('id', uuidIds);
+        }
+        if (sprIds.length > 0) {
+          await supabase.from('students').delete().in('spr_id', sprIds);
+        }
+      } catch (e) {
+        console.warn('bulkDeleteStudents notice:', e);
+      }
+    })();
+  }
+
+  bulkDeleteBorrowRequests(ids: string[]): void {
+    const set = new Set(ids);
+    const list = this.getBorrowRequests().filter((r) => !set.has(r.id));
+    this.setItem(STORAGE_KEYS.REQUESTS, list);
+    this.syncToCloud('library_requests_v2', list);
+  }
+
+  bulkDeleteBorrowRecords(ids: string[]): void {
+    const set = new Set(ids);
+    const list = this.getBorrowRecords().filter((r) => !set.has(r.id));
+    this.setItem(STORAGE_KEYS.RECORDS, list);
+    this.syncToCloud('library_records_v2', list);
+  }
+
+  // Category Management CRUD
+  addCategory(cat: { name_ar: string; name_en?: string; slug?: string; icon?: string }) {
+    const list = this.getCategories();
+    const newCat = {
+      id: `cat-${Date.now()}`,
+      name_ar: cat.name_ar.trim(),
+      name_en: cat.name_en?.trim() || cat.name_ar.trim(),
+      slug: cat.slug?.trim() || `cat-${Date.now()}`,
+      icon: cat.icon || 'BookOpen',
+      sort_order: list.length + 1,
+    };
+    list.push(newCat);
+    this.setItem(STORAGE_KEYS.CATEGORIES, list);
+    this.syncToCloud('library_categories_v2', list);
+
+    (async () => {
+      try {
+        await supabase.from('categories').insert({
+          name_ar: newCat.name_ar,
+          name_en: newCat.name_en,
+          slug: newCat.slug,
+          icon: newCat.icon,
+          sort_order: newCat.sort_order,
+        });
+      } catch (e) {
+        console.warn('addCategory Supabase notice:', e);
+      }
+    })();
+    return newCat;
+  }
+
+  updateCategory(id: string, cat: Partial<{ name_ar: string; name_en: string; slug: string; icon: string }>) {
+    const list = this.getCategories();
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      const updated = { ...list[idx], ...cat };
+      list[idx] = updated;
+      this.setItem(STORAGE_KEYS.CATEGORIES, list);
+      this.syncToCloud('library_categories_v2', list);
+
+      (async () => {
+        try {
+          const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (UUID_REGEX.test(id)) {
+            await supabase.from('categories').update({
+              name_ar: updated.name_ar,
+              name_en: updated.name_en,
+              slug: updated.slug,
+              icon: updated.icon,
+            }).eq('id', id);
+          }
+        } catch (e) {
+          console.warn('updateCategory Supabase notice:', e);
+        }
+      })();
+      return updated;
+    }
+    return null;
+  }
+
+  deleteCategory(id: string): void {
+    const list = this.getCategories().filter((c) => c.id !== id);
+    this.setItem(STORAGE_KEYS.CATEGORIES, list);
+    this.syncToCloud('library_categories_v2', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await supabase.from('categories').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn('deleteCategory Supabase notice:', e);
+      }
+    })();
+  }
+
+  // Leaderboard & Reading Points System
+  getLeaderboardSettings(): LeaderboardSettings {
+    return this.getItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, DEFAULT_LEADERBOARD_SETTINGS);
+  }
+
+  saveLeaderboardSettings(settings: Partial<LeaderboardSettings>): LeaderboardSettings {
+    const current = this.getLeaderboardSettings();
+    const updated = { ...current, ...settings };
+    this.setItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, updated);
+    this.syncToCloud('library_leaderboard_settings', updated);
+
+    // If points per 10 pages changed, recalculate all existing reading records
+    if (settings.points_per_10_pages !== undefined && settings.points_per_10_pages !== current.points_per_10_pages) {
+      this.recalculateAllReadingPoints();
+    }
+    return updated;
+  }
+
+  getReadingRecords(): ReadingRecord[] {
+    return this.getItem(STORAGE_KEYS.READING_RECORDS, DEFAULT_READING_RECORDS);
+  }
+
+  saveReadingRecord(record: {
+    borrow_record_id?: string;
+    student_id?: string;
+    student_name: string;
+    student_spr_id?: string;
+    book_id: string;
+    book_title: string;
+    book_pages: number;
+    reading_status: ReadingStatus;
+    pages_read?: number;
+    notes?: string;
+  }): ReadingRecord {
+    const list = this.getReadingRecords();
+    const settings = this.getLeaderboardSettings();
+    const ratio = settings.points_per_10_pages / 10;
+
+    let pages = 0;
+    if (record.reading_status === 'full') {
+      pages = record.book_pages || 0;
+    } else if (record.reading_status === 'custom') {
+      pages = Math.max(0, record.pages_read || 0);
+    } else {
+      pages = 0;
+    }
+
+    const points = Math.round(pages * ratio);
+
+    // Check if an entry already exists for this borrow record or book+student combo
+    const existingIdx = record.borrow_record_id
+      ? list.findIndex((r) => r.borrow_record_id === record.borrow_record_id)
+      : -1;
+
+    let savedRecord: ReadingRecord;
+    if (existingIdx !== -1) {
+      savedRecord = {
+        ...list[existingIdx],
+        ...record,
+        pages_read: pages,
+        points_awarded: points,
+        awarded_at: new Date().toISOString(),
+      };
+      list[existingIdx] = savedRecord;
+    } else {
+      savedRecord = {
+        id: `read-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        ...record,
+        pages_read: pages,
+        points_awarded: points,
+        awarded_at: new Date().toISOString(),
+      };
+      list.unshift(savedRecord);
+    }
+
+    this.setItem(STORAGE_KEYS.READING_RECORDS, list);
+    this.syncToCloud('library_reading_records', list);
+    return savedRecord;
+  }
+
+  deleteReadingRecord(id: string): void {
+    const list = this.getReadingRecords().filter((r) => r.id !== id);
+    this.setItem(STORAGE_KEYS.READING_RECORDS, list);
+    this.syncToCloud('library_reading_records', list);
+  }
+
+  recalculateAllReadingPoints(): void {
+    const list = this.getReadingRecords();
+    const settings = this.getLeaderboardSettings();
+    const ratio = settings.points_per_10_pages / 10;
+
+    const updated = list.map((r) => {
+      let pages = r.pages_read;
+      if (r.reading_status === 'full') {
+        pages = r.book_pages;
+      } else if (r.reading_status === 'not_read') {
+        pages = 0;
+      }
+      return {
+        ...r,
+        pages_read: pages,
+        points_awarded: Math.round(pages * ratio),
+      };
+    });
+
+    this.setItem(STORAGE_KEYS.READING_RECORDS, updated);
+    this.syncToCloud('library_reading_records', updated);
+  }
+
+  getLeaderboard(snapshotId?: string): LeaderboardEntry[] {
+    if (snapshotId) {
+      const snapshots = this.getLeaderboardSnapshots();
+      const snap = snapshots.find((s) => s.id === snapshotId);
+      if (snap) return snap.entries;
+    }
+
+    const readings = this.getReadingRecords();
+    const students = this.getStudents();
+    const studentMap = new Map(students.map((s) => [s.name, s]));
+    students.forEach((s) => {
+      if (s.id) studentMap.set(s.id, s);
+      if (s.spr_id) studentMap.set(s.spr_id, s);
+    });
+
+    // Group by student identifier (SPR ID or name)
+    const map = new Map<string, {
+      student_id?: string;
+      student_name: string;
+      student_spr_id?: string;
+      total_points: number;
+      books_completed: number;
+      total_pages_read: number;
+      readings: ReadingRecord[];
+    }>();
+
+    for (const r of readings) {
+      const matched = studentMap.get(r.student_name) || (r.student_id ? studentMap.get(r.student_id) : undefined);
+      const spr = r.student_spr_id || matched?.spr_id;
+      const key = spr || r.student_name;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          student_id: r.student_id || matched?.id,
+          student_name: r.student_name,
+          student_spr_id: spr,
+          total_points: 0,
+          books_completed: 0,
+          total_pages_read: 0,
+          readings: [],
+        });
+      }
+
+      const item = map.get(key)!;
+      item.total_points += r.points_awarded || 0;
+      if (r.reading_status === 'full' || (r.pages_read >= r.book_pages && r.book_pages > 0)) {
+        item.books_completed += 1;
+      }
+      item.total_pages_read += r.pages_read || 0;
+      item.readings.push(r);
+    }
+
+    const entries = Array.from(map.values())
+      .filter((e) => e.total_points > 0 || e.total_pages_read > 0)
+      .sort((a, b) => {
+        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+        if (b.total_pages_read !== a.total_pages_read) return b.total_pages_read - a.total_pages_read;
+        return a.student_name.localeCompare(b.student_name);
+      })
+      .map((e, idx) => ({
+        rank: idx + 1,
+        ...e,
+      }));
+
+    return entries;
+  }
+
+  getLeaderboardSnapshots(): LeaderboardSnapshot[] {
+    return this.getItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, []);
+  }
+
+  createLeaderboardSnapshot(name: string): LeaderboardSnapshot {
+    const list = this.getLeaderboardSnapshots();
+    const liveEntries = this.getLeaderboard();
+    const snapshot: LeaderboardSnapshot = {
+      id: `snap-${Date.now()}`,
+      name: name.trim() || `تحدي القراءة - ${new Date().toLocaleDateString('ar-SA')}`,
+      created_at: new Date().toISOString(),
+      entries: liveEntries,
+    };
+    list.unshift(snapshot);
+    this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
+    this.syncToCloud('library_leaderboard_snapshots', list);
+    return snapshot;
+  }
+
+  deleteLeaderboardSnapshot(id: string): void {
+    const list = this.getLeaderboardSnapshots().filter((s) => s.id !== id);
+    this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
+    this.syncToCloud('library_leaderboard_snapshots', list);
+  }
+
+  // Overdue Books helpers
+  getOverdueRecords(): (BorrowRecord & { days_overdue: number })[] {
+    const now = new Date();
+    const records = this.getBorrowRecords();
+    return records
+      .filter((r) => r.status === 'active' && r.due_at && new Date(r.due_at).getTime() < now.getTime())
+      .map((r) => {
+        const diffMs = now.getTime() - new Date(r.due_at).getTime();
+        const days = Math.max(1, Math.floor(diffMs / 86400000));
+        return {
+          ...r,
+          days_overdue: days,
+        };
+      })
+      .sort((a, b) => b.days_overdue - a.days_overdue);
+  }
+
+  returnOverdueBook(recordId: string, readingStatus: ReadingStatus, customPages?: number): boolean {
+    const records = this.getBorrowRecords();
+    const record = records.find((r) => r.id === recordId);
+    if (!record) return false;
+
+    record.status = 'returned';
+    record.returned_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.RECORDS, records);
+    this.syncToCloud('library_records_v2', records);
+
+    // Also update matching borrow request if pending/approved
+    const requests = this.getBorrowRequests();
+    const req = requests.find((rq) => rq.book_id === record.book_id && rq.requester_name === record.borrower_name && rq.status === 'approved');
+    if (req) {
+      req.status = 'returned';
+      req.returned_at = new Date().toISOString();
+      this.setItem(STORAGE_KEYS.REQUESTS, requests);
+      this.syncToCloud('library_requests_v2', requests);
+    }
+
+    const book = this.getBookById(record.book_id);
+    const totalPages = book?.pages || 100;
+    let pagesRead = 0;
+    if (readingStatus === 'full') {
+      pagesRead = totalPages;
+    } else if (readingStatus === 'custom') {
+      pagesRead = customPages && customPages > 0 ? customPages : 0;
+    }
+
+    const student = this.getStudents().find((s) => s.id === record.student_id || s.name === record.borrower_name);
+
+    this.saveReadingRecord({
+      borrow_record_id: record.id,
+      student_id: record.student_id || student?.id,
+      student_name: record.borrower_name,
+      student_spr_id: student?.spr_id,
+      book_id: record.book_id,
+      book_title: record.book_title,
+      book_pages: totalPages,
+      reading_status: readingStatus,
+      pages_read: pagesRead,
+    });
+
+    return true;
   }
 
   // Reviews & Ratings methods for Book Details post functions

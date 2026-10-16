@@ -11,6 +11,8 @@ import SettingsPanel from '@/components/admin/SettingsPanel';
 import AnalyticsPanel from '@/components/admin/AnalyticsPanel';
 import BorrowRequestsManager from '@/components/admin/BorrowRequestsManager';
 import BorrowRecordsManager from '@/components/admin/BorrowRecordsManager';
+import LeaderboardManager from '@/components/admin/LeaderboardManager';
+import OverdueManager from '@/components/admin/OverdueManager';
 
 export default function Admin() {
   const { isAdmin, loading } = useAuth();
@@ -51,6 +53,12 @@ export default function Admin() {
             <TabsTrigger value="records" className="rounded-xl text-xs font-bold py-2 px-3.5">
               {t('borrowRecords')}
             </TabsTrigger>
+            <TabsTrigger value="overdue" className="rounded-xl text-xs font-bold py-2 px-3.5 text-rose-600 dark:text-rose-400">
+              {t('overdue')}
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="rounded-xl text-xs font-bold py-2 px-3.5 text-amber-600 dark:text-amber-400">
+              {t('manageLeaderboard')}
+            </TabsTrigger>
             <TabsTrigger value="dashboard" className="rounded-xl text-xs font-bold py-2 px-3.5">
               {t('dashboard')}
             </TabsTrigger>
@@ -73,6 +81,12 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="records">
             <BorrowRecordsManager />
+          </TabsContent>
+          <TabsContent value="overdue">
+            <OverdueManager />
+          </TabsContent>
+          <TabsContent value="leaderboard">
+            <LeaderboardManager />
           </TabsContent>
           <TabsContent value="dashboard">
             <AnalyticsPanel />

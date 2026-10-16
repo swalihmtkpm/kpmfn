@@ -54,39 +54,55 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const categoriesRef = useRef<HTMLDivElement>(null);
 
-  // Close settings menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setSettingsOpen(false);
       }
+      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
+        setCategoriesOpen(false);
+      }
     }
-    if (settingsOpen) {
+    if (settingsOpen || categoriesOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [settingsOpen]);
+  }, [settingsOpen, categoriesOpen]);
 
-  // Desktop header navigation items (Settings removed as requested)
+  // Compute categories with book counts
+  const categoriesWithCount = useMemo(() => {
+    const cats = dataService.getCategories();
+    const books = dataService.getBooks();
+    return cats.map((c) => ({
+      ...c,
+      count: books.filter((b) => b.category_id === c.id).length,
+    }));
+  }, [location.pathname]);
+
+  // Desktop header navigation items
   const headerNavItems = [
     { label: t('home'), path: '/', icon: Home },
     { label: t('catalog'), path: '/catalog', icon: BookOpen },
+    { label: t('leaderboard'), path: '/leaderboard', icon: Trophy },
   ];
 
   // Mobile bottom navigation items
   const mobileNavItems = [
     { label: t('home'), path: '/', icon: Home },
     { label: t('catalog'), path: '/catalog', icon: BookOpen },
-    { label: t('categories'), path: '/browse', icon: FolderOpen },
+    { label: t('leaderboard'), path: '/leaderboard', icon: Trophy },
     { label: t('settingsHeader'), path: '/settings', icon: SettingsIcon },
   ];
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/' && !location.hash;
-    return location.pathname === path;
+    return location.pathname.startsWith(path) && path !== '/';
   };
 
   const handleNavClick = (path: string) => {
@@ -110,7 +126,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 flex items-center justify-center group-active:scale-95 transition-transform overflow-hidden shadow-sm">
                 <img
-                  src="/library-logo.png"
+                  src="/app-logo.png"
                   alt=""
                   className="w-9 h-9 md:w-10 md:h-10 object-contain"
                   draggable={false}
@@ -118,9 +134,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
               <div className="leading-tight text-start">
                 <img
-                  src="/library-name.png"
+                  src="/app-logo-text.png"
                   alt={t('appName')}
-                  className="h-6 md:h-7 object-contain"
+                  className="h-7 md:h-8 object-contain"
                   draggable={false}
                 />
                 <div className="text-[11px] text-muted-foreground hidden sm:flex items-center gap-1 mt-0.5 font-medium">
@@ -131,24 +147,99 @@ export default function Layout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          {/* Desktop Navigation Links - Clean & Centered (Settings text removed) */}
-          <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 bg-secondary/70 px-3 py-1.5 rounded-full border border-border/60">
-            {headerNavItems.map((item) => {
-              const active = isActive(item.path);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavClick(item.path)}
-                  className={`relative px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    active
-                      ? 'text-primary-foreground bg-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+          {/* Desktop Navigation Links - Clean & Centered */}
+          <nav className="hidden md:flex items-center gap-1.5 lg:gap-2.5 bg-secondary/70 px-3 py-1.5 rounded-full border border-border/60">
+            {/* Home & Catalog buttons */}
+            <button
+              onClick={() => handleNavClick('/')}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                location.pathname === '/'
+                  ? 'text-primary-foreground bg-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+              }`}
+            >
+              {t('home')}
+            </button>
+
+            <button
+              onClick={() => handleNavClick('/catalog')}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                location.pathname === '/catalog'
+                  ? 'text-primary-foreground bg-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+              }`}
+            >
+              {t('catalog')}
+            </button>
+
+            {/* Categories Dropdown in Header with Book Counts (Requested) */}
+            <div className="relative" ref={categoriesRef}>
+              <button
+                onClick={() => setCategoriesOpen(!categoriesOpen)}
+                className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  categoriesOpen || location.search.includes('category=')
+                    ? 'text-primary-foreground bg-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>{t('categories')}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${categoriesOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {categoriesOpen && (
+                <div className="absolute top-full start-0 mt-2 w-72 bg-card border border-border/80 rounded-2xl shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-xs font-extrabold text-muted-foreground border-b border-border/50 mb-1 flex items-center justify-between">
+                    <span>{t('categories')}</span>
+                    <span className="text-[10px] text-primary font-bold">{categoriesWithCount.length} {t('categories')}</span>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto space-y-1">
+                    <button
+                      onClick={() => {
+                        setCategoriesOpen(false);
+                        navigate('/catalog');
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-foreground hover:bg-accent/80 transition-colors text-start"
+                    >
+                      <span>{t('all')}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
+                        {dataService.getBooks().length}
+                      </span>
+                    </button>
+                    {categoriesWithCount.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setCategoriesOpen(false);
+                          navigate(`/catalog?category=${cat.id}`);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors text-start group"
+                      >
+                        <span className="truncate pe-2">
+                          {lang === 'ar' ? cat.name_ar : cat.name_en}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground shrink-0 transition-colors">
+                          {cat.count} {lang === 'ar' ? 'كتب' : 'books'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Leaderboard Button with Trophy icon (Requested) */}
+            <button
+              onClick={() => handleNavClick('/leaderboard')}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                location.pathname === '/leaderboard'
+                  ? 'text-primary-foreground bg-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-500" />
+              <span>{t('leaderboard')}</span>
+            </button>
           </nav>
 
           {/* Right Action Items: Settings Icon with Menu, Admin Controls */}

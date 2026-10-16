@@ -34,6 +34,9 @@ export default function StudentsManager() {
   const [editing, setEditing] = useState<Partial<Student> | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Bulk Selection state
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+
   // Student Stats / Activity Modal state
   // "if admin click on any student name in the admin panels student adding session,how much books he borrowed /requested/returned should show."
   const [activeStudentStats, setActiveStudentStats] = useState<{
@@ -110,8 +113,41 @@ export default function StudentsManager() {
   const handleDelete = (s: Student) => {
     if (!confirm(t('confirmDelete'))) return;
     dataService.deleteStudent(s.id);
+    setSelectedStudentIds((prev) => prev.filter((id) => id !== s.id));
     toast.success(t('deleted'));
     reload();
+  };
+
+  // Bulk selection helpers
+  const toggleSelectAll = () => {
+    if (selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredStudents.map((s) => s.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedStudentIds.length === 0) return;
+    if (!confirm(`${t('confirmDelete')} (${selectedStudentIds.length} ${t('students')})`)) return;
+    try {
+      await dataService.bulkDeleteStudents(selectedStudentIds);
+      toast.success(
+        lang === 'ar'
+          ? `تم حذف ${selectedStudentIds.length} طالباً بنجاح`
+          : `Deleted ${selectedStudentIds.length} students successfully`
+      );
+      setSelectedStudentIds([]);
+      reload();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete selected students');
+    }
   };
 
   // Clicking on any student name opens their borrow / request / return stats
@@ -176,8 +212,20 @@ export default function StudentsManager() {
           />
         </div>
 
-        {/* Buttons: Add, Excel Template, Bulk Upload */}
+        {/* Buttons: Bulk Delete, Add, Excel Template, Bulk Upload */}
         <div className="flex flex-wrap items-center gap-2">
+          {selectedStudentIds.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              className="gap-1.5 h-10 rounded-xl text-xs font-bold animate-in fade-in"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{t('deleteSelected')} ({selectedStudentIds.length})</span>
+            </Button>
+          )}
+
           {/* Download Excel Template */}
           <Button
             variant="outline"
@@ -223,6 +271,15 @@ export default function StudentsManager() {
           <table className="w-full text-xs text-start">
             <thead className="bg-secondary/60 border-b border-border/60 text-muted-foreground font-bold">
               <tr>
+                <th className="px-3 py-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                    title={t('selectAll')}
+                  />
+                </th>
                 <th className="px-4 py-3 text-start">{t('studentName')}</th>
                 <th className="px-4 py-3 text-start">{t('class')}</th>
                 <th className="px-4 py-3 text-start">SPR ID</th>
@@ -235,8 +292,24 @@ export default function StudentsManager() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {filteredStudents.length > 0 ? (
-                filteredStudents.map((s) => (
-                  <tr key={s.id} className="hover:bg-accent/40 transition-colors">
+                filteredStudents.map((s) => {
+                  const isSelected = selectedStudentIds.includes(s.id);
+                  return (
+                  <tr
+                    key={s.id}
+                    className={`hover:bg-accent/40 transition-colors ${
+                      isSelected ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    {/* Row Checkbox */}
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectOne(s.id)}
+                        className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                      />
+                    </td>
                     {/* Student Name: Clickable to view borrow/request/return stats */}
                     <td className="px-4 py-3 font-bold text-foreground">
                       <button
@@ -286,10 +359,11 @@ export default function StudentsManager() {
                       </Button>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={9} className="text-center py-12 text-muted-foreground">
                     {lang === 'ar' ? 'لا يوجد طلاب مسجلون' : 'No students found'}
                   </td>
                 </tr>

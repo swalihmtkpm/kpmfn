@@ -35,6 +35,9 @@ export default function BooksManager() {
   const [editing, setEditing] = useState<Partial<Book> | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Bulk Selection state
+  const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
+
   // Book Stats Modal state
   // "if admin click on any book name in the admin panels book adding session,how much users borrowed /requested/returned about that book should show."
   const [activeBookStats, setActiveBookStats] = useState<{
@@ -77,6 +80,8 @@ export default function BooksManager() {
       author_en: '',
       publisher_ar: '',
       publisher_en: '',
+      description_ar: '',
+      description_en: '',
       book_code: '',
       pages: 0,
       volume: '1',
@@ -109,6 +114,8 @@ export default function BooksManager() {
         author_en: editing.author_en?.trim() || '',
         publisher_ar: editing.publisher_ar?.trim() || '',
         publisher_en: editing.publisher_en?.trim() || '',
+        description_ar: editing.description_ar?.trim() || '',
+        description_en: editing.description_en?.trim() || '',
         book_code: editing.book_code?.trim() || '',
         pages: Number(editing.pages) || 0,
         volume: editing.volume?.trim() || '1',
@@ -132,8 +139,41 @@ export default function BooksManager() {
   const handleDelete = (b: Book) => {
     if (!confirm(t('confirmDelete'))) return;
     dataService.deleteBook(b.id);
+    setSelectedBookIds((prev) => prev.filter((id) => id !== b.id));
     toast.success(t('deleted'));
     reload();
+  };
+
+  // Bulk selection helpers
+  const toggleSelectAll = () => {
+    if (selectedBookIds.length === filteredBooks.length && filteredBooks.length > 0) {
+      setSelectedBookIds([]);
+    } else {
+      setSelectedBookIds(filteredBooks.map((b) => b.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedBookIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBookIds.length === 0) return;
+    if (!confirm(`${t('confirmDelete')} (${selectedBookIds.length} ${t('books')})`)) return;
+    try {
+      await dataService.bulkDeleteBooks(selectedBookIds);
+      toast.success(
+        lang === 'ar'
+          ? `تم حذف ${selectedBookIds.length} كتاباً بنجاح`
+          : `Deleted ${selectedBookIds.length} books successfully`
+      );
+      setSelectedBookIds([]);
+      reload();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete selected books');
+    }
   };
 
   // Clicking on any book name opens borrow / request / return statistics for that book
@@ -168,6 +208,8 @@ export default function BooksManager() {
           author_en: row['Author (English)'] || row['المؤلف (إنجليزي)'] || '',
           publisher_ar: row['Publisher (Arabic)'] || row['دار النشر (عربي)'] || '',
           publisher_en: row['Publisher (English)'] || row['دار النشر (إنجليزي)'] || '',
+          description_ar: row['Description (Arabic)'] || row['وصف الكتاب (عربي)'] || row['Description'] || row['الوصف'] || '',
+          description_en: row['Description (English)'] || row['وصف الكتاب (إنجليزي)'] || '',
           book_code: row['Book Code'] || row['رمز الكتاب'] || '',
           pages: Number(row['Pages'] || row['عدد الصفحات'] || 0),
           volume: String(row['Volume'] || row['المجلد'] || '1'),
@@ -203,8 +245,20 @@ export default function BooksManager() {
           />
         </div>
 
-        {/* Buttons: Download Template, Bulk Upload, Add Book */}
+        {/* Buttons: Bulk Delete, Download Template, Bulk Upload, Add Book */}
         <div className="flex flex-wrap items-center gap-2">
+          {selectedBookIds.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              className="gap-1.5 h-10 rounded-xl text-xs font-bold animate-in fade-in"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{t('deleteSelected')} ({selectedBookIds.length})</span>
+            </Button>
+          )}
+
           {/* Download Template */}
           <Button
             variant="outline"
@@ -250,6 +304,15 @@ export default function BooksManager() {
           <table className="w-full text-xs text-start">
             <thead className="bg-secondary/60 border-b border-border/60 text-muted-foreground font-bold">
               <tr>
+                <th className="px-3 py-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredBooks.length > 0 && selectedBookIds.length === filteredBooks.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                    title={t('selectAll')}
+                  />
+                </th>
                 <th className="px-3 py-3 text-start w-12">{t('poster')}</th>
                 <th className="px-4 py-3 text-start">{t('title')}</th>
                 <th className="px-4 py-3 text-start">{t('author')}</th>
@@ -266,14 +329,25 @@ export default function BooksManager() {
                 filteredBooks.map((b) => {
                   const isMissed = b.status === 'missed';
                   const coverSrc = convertDriveUrl(b.cover_url);
+                  const isSelected = selectedBookIds.includes(b.id);
 
                   return (
                     <tr
                       key={b.id}
                       className={`hover:bg-accent/40 transition-colors ${
-                        isMissed ? 'bg-destructive/5' : ''
+                        isSelected ? 'bg-primary/5' : isMissed ? 'bg-destructive/5' : ''
                       }`}
                     >
+                      {/* Row Checkbox */}
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(b.id)}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                        />
+                      </td>
+
                       {/* Cover Thumbnail */}
                       <td className="px-3 py-2">
                         <div className="w-9 h-12 rounded-md bg-secondary overflow-hidden border border-border/60 shrink-0 flex items-center justify-center">
@@ -452,6 +526,30 @@ export default function BooksManager() {
                     onChange={(e) => setEditing({ ...editing, publisher_en: e.target.value })}
                     placeholder="Dar Tawq Al-Najat"
                     className="h-9 rounded-xl text-xs mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Book Descriptions: Arabic & English */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-bold">{lang === 'ar' ? 'وصف الكتاب (عربي)' : 'Description (Arabic)'}</Label>
+                  <textarea
+                    value={editing.description_ar || ''}
+                    onChange={(e) => setEditing({ ...editing, description_ar: e.target.value })}
+                    placeholder={lang === 'ar' ? 'نبذة مختصرة عن محتوى الكتاب، موضوعه، وأهميته...' : 'Brief summary of the book...'}
+                    rows={2}
+                    className="w-full rounded-xl text-xs mt-1 p-2 bg-background border border-border resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold">{lang === 'ar' ? 'وصف الكتاب (إنجليزي)' : 'Description (English)'}</Label>
+                  <textarea
+                    value={editing.description_en || ''}
+                    onChange={(e) => setEditing({ ...editing, description_en: e.target.value })}
+                    placeholder={lang === 'ar' ? 'نبذة بالإنجليزية...' : 'Brief English summary...'}
+                    rows={2}
+                    className="w-full rounded-xl text-xs mt-1 p-2 bg-background border border-border resize-none focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>

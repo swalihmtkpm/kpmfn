@@ -24,6 +24,13 @@ export default function Catalog() {
     setBooks(list);
   }, []);
 
+  useEffect(() => {
+    const cat = searchParams.get('category') ?? 'all';
+    setSelectedCategory(cat);
+    const q = searchParams.get('q');
+    if (q !== null) setQuery(q);
+  }, [searchParams]);
+
   const categories = useMemo(() => {
     return dataService.getCategories().map((c) => ({
       id: c.id,

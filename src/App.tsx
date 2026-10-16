@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Browse from './pages/Browse';
 import NotFound from './pages/NotFound';
 import Catalog from './pages/Catalog';
+import Leaderboard from './pages/Leaderboard';
 
 import IntroSplash from './components/IntroSplash';
 import ForcePasswordChange from './components/ForcePasswordChange';
@@ -83,6 +84,7 @@ function AppShell() {
         <Route path="/" element={<Index />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/browse" element={<Catalog />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/book/:id" element={<BookDetails />} />
         <Route path="/admin/login" element={<AdminLogin />} />

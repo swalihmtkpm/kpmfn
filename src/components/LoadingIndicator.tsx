@@ -10,9 +10,9 @@ type LoadingProps = {
 };
 
 /**
- * Standard rotating library logo with Islamic-minimalist concentric glow.
+ * Standard rotating library logo rosette (continuous smooth rotation).
  */
-export function BrandSpinner({ size = 52, className = '' }: LoadingProps) {
+export function BrandSpinner({ size = 56, className = '' }: LoadingProps) {
   return (
     <div
       className={`relative inline-flex items-center justify-center select-none ${className}`}
@@ -20,22 +20,17 @@ export function BrandSpinner({ size = 52, className = '' }: LoadingProps) {
     >
       {/* Subtle pulsing outer ring */}
       <div
-        className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping opacity-30"
+        className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping opacity-25"
         style={{ animationDuration: '2.5s' }}
       />
-      {/* Concentric rotating border accent */}
-      <div
-        className="absolute inset-1 rounded-full border border-primary/40 border-t-primary animate-spin"
-        style={{ animationDuration: '1.2s' }}
-      />
-      {/* Official Brand Logo */}
+      {/* Official Brand Logo Rosette rotating continuously */}
       <img
-        src="/library-logo.png"
+        src="/app-logo.png"
         alt="Loading"
         width={size}
         height={size}
-        className="object-contain logo-adaptive relative z-10 transition-transform duration-300"
-        style={{ width: size, height: size }}
+        className="object-contain logo-adaptive relative z-10 animate-spin"
+        style={{ width: size, height: size, animationDuration: '2.5s' }}
         draggable={false}
       />
     </div>
@@ -64,13 +59,16 @@ export function FullPageLoader({ size = 64, text }: { size?: number; text?: stri
 }
 
 /**
- * Clean inline spinner for buttons and interactive items.
+ * Clean inline spinner using rotating logo rosette.
  */
-export function InlineSpinner({ size = 16, className = '' }: { size?: number; className?: string }) {
+export function InlineSpinner({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
-    <div
-      className={`inline-block border-2 border-current border-t-transparent rounded-full animate-spin ${className}`}
-      style={{ width: size, height: size }}
+    <img
+      src="/app-logo.png"
+      alt="Loading"
+      className={`inline-block object-contain animate-spin ${className}`}
+      style={{ width: size, height: size, animationDuration: '1.8s' }}
+      draggable={false}
     />
   );
 }

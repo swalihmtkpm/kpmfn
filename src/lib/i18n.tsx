@@ -237,6 +237,29 @@ const dict = {
     bulkAddBooks: 'إضافة كتب جماعياً (Excel)',
     downloadStudentTemplate: 'تنزيل قالب إكسل للطلاب',
     downloadBookTemplate: 'تنزيل قالب إكسل للكتب',
+    leaderboard: 'لوحة الصدارة',
+    overdue: 'الكتب المتأخرة',
+    manageLeaderboard: 'إدارة لوحة الصدارة',
+    points: 'النقاط',
+    rank: 'المرتبة',
+    selectedItems: 'عناصر محددة',
+    readingHistory: 'سجل القراءة وتفاصيل النقاط',
+    awardPoints: 'احتساب النقاط',
+    fullRead: 'قراءة كاملة',
+    customRead: 'قراءة مخصصة',
+    notRead: 'لم يقرأ',
+    readingValuation: 'تقييم القراءة',
+    livePreview: 'معاينة مباشرة',
+    visibilitySnapshots: 'الرؤية واللقطات',
+    takeSnapshot: 'أخذ لقطة للصدارة',
+    snapshotName: 'اسم لقطة الصدارة',
+    hideLeaderboard: 'إخفاء لوحة الصدارة عن القراء',
+    showLeaderboard: 'إظهار لوحة الصدارة للقراء',
+    liveLeaderboard: 'لوحة الصدارة المباشرة',
+    pastLeaderboards: 'لوحات الصدارة السابقة',
+    pointsPer10Pages: 'النقاط لكل 10 صفحات',
+    daysOverdue: 'أيام التأخير',
+    markReturnedWithPoints: 'إرجاع الكتاب واحتساب نقاط القراءة',
   },
   en: {
     appName: 'مكتبة الامتياز',
@@ -472,6 +495,29 @@ const dict = {
     bulkAddBooks: 'Bulk Add Books (Excel)',
     downloadStudentTemplate: 'Download Student Excel Template',
     downloadBookTemplate: 'Download Book Excel Template',
+    leaderboard: 'Leaderboard',
+    overdue: 'Overdue Books',
+    manageLeaderboard: 'Manage Leaderboard',
+    points: 'Points',
+    rank: 'Rank',
+    selectedItems: 'Selected Items',
+    readingHistory: 'Reading History & Score Breakdown',
+    awardPoints: 'Award Points',
+    fullRead: 'Full Read',
+    customRead: 'Custom Pages',
+    notRead: 'Not Read',
+    readingValuation: 'Reading Valuation',
+    livePreview: 'Live Preview',
+    visibilitySnapshots: 'Visibility & Snapshots',
+    takeSnapshot: 'Save Snapshot',
+    snapshotName: 'Snapshot Name',
+    hideLeaderboard: 'Hide Leaderboard from Users',
+    showLeaderboard: 'Show Leaderboard to Users',
+    liveLeaderboard: 'Live Leaderboard',
+    pastLeaderboards: 'Past Leaderboards',
+    pointsPer10Pages: 'Points per 10 Pages',
+    daysOverdue: 'Days Overdue',
+    markReturnedWithPoints: 'Return Book & Award Points',
   },
 } as const;
 
@@ -513,4 +559,12 @@ export function useI18n() {
   const ctx = useContext(LangCtx);
   if (!ctx) throw new Error('useI18n must be used within LanguageProvider');
   return ctx;
+}
+
+export function useLanguage() {
+  const ctx = useI18n();
+  return {
+    ...ctx,
+    isRTL: ctx.dir === 'rtl',
+  };
 }
