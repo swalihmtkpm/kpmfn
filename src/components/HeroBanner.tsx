@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
@@ -35,17 +35,17 @@ export default function HeroBanner({ banners: propBanners }: Props) {
     return banners[currentIndex % banners.length];
   }, [banners, currentIndex]);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     if (count <= 1) return;
     setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % count);
-  };
+  }, [count]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     if (count <= 1) return;
     setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + count) % count);
-  };
+  }, [count]);
 
   // Slideshow duration logic:
   // - Images: exactly 3 seconds (3000ms)
@@ -70,7 +70,7 @@ export default function HeroBanner({ banners: propBanners }: Props) {
         timerRef.current = null;
       }
     };
-  }, [currentIndex, count, currentBanner]);
+  }, [currentIndex, count, currentBanner, nextSlide]);
 
   // Video ended handler
   const handleVideoEnded = () => {

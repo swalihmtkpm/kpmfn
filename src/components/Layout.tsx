@@ -80,6 +80,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   // Compute categories with book counts
   const categoriesWithCount = useMemo(() => {
+    void location.pathname;
     const cats = dataService.getCategories();
     const books = dataService.getBooks();
     return cats.map((c) => ({

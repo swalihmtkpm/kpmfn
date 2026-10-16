@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ export default function BorrowRequestsManager() {
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const load = () => {
+  const load = useCallback(() => {
     const list = dataService.getBorrowRequests();
     if (filter === 'all') {
       setRows(list);
@@ -21,11 +21,11 @@ export default function BorrowRequestsManager() {
       setRows(list.filter((r) => r.status === filter));
     }
     setSelectedIds([]);
-  };
+  }, [filter]);
 
   useEffect(() => {
     load();
-  }, [filter]);
+  }, [load]);
 
   const decide = (r: BorrowRequest, action: 'approved' | 'rejected') => {
     dataService.updateBorrowRequestStatus(r.id, action);
