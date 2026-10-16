@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Calendar,
   Lock,
+  BookOpen,
 } from 'lucide-react';
 
 type Props = {

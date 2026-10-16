@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { Banner, convertDriveUrl, dataService } from '@/lib/dataService';
 import { useI18n } from '@/lib/i18n';
@@ -97,7 +98,7 @@ export default function HeroBanner({ banners: propBanners }: Props) {
   const mediaSrc = convertDriveUrl(currentBanner.media_url, currentBanner.type);
 
   // Framer motion variants for smart sliding animations
-  const slideVariants = {
+  const slideVariants: Variants = {
     enter: (d: number) => ({
       x: d > 0 ? '100%' : '-100%',
       opacity: 0,
@@ -108,7 +109,7 @@ export default function HeroBanner({ banners: propBanners }: Props) {
       opacity: 1,
       scale: 1,
       transition: {
-        x: { type: 'spring', stiffness: 280, damping: 30 },
+        x: { type: 'spring' as const, stiffness: 280, damping: 30 },
         opacity: { duration: 0.35 },
       },
     },
@@ -117,7 +118,7 @@ export default function HeroBanner({ banners: propBanners }: Props) {
       opacity: 0,
       scale: 0.98,
       transition: {
-        x: { type: 'spring', stiffness: 280, damping: 30 },
+        x: { type: 'spring' as const, stiffness: 280, damping: 30 },
         opacity: { duration: 0.35 },
       },
     }),
