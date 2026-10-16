@@ -20,6 +20,7 @@ import ScrollManager from './components/ScrollManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './lib/i18n';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { dataService } from './lib/dataService';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,11 @@ function AppShell() {
       const saved = localStorage.getItem('imthiyaz_theme');
       if (saved === 'dark') document.documentElement.classList.add('dark');
     } catch {}
+  }, []);
+
+  // Sync latest cloud data from Lovable Cloud Database (Supabase)
+  useEffect(() => {
+    dataService.syncFromSupabase().catch(() => {});
   }, []);
 
   if (!introDone && location.pathname === '/') {

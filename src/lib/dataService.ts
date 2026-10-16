@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { supabase } from '@/integrations/supabase/client';
 
 export type BookStatus = 'available' | 'missed' | 'borrowed';
 
@@ -572,6 +573,110 @@ class DataService {
     }
   }
 
+  private isSyncing = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.syncFromSupabase().catch(() => {});
+    }
+  }
+
+  private async syncToCloud(cloudKey: string, data: any) {
+    try {
+      await supabase.from('library_settings').upsert(
+        { key: cloudKey, value: data as any },
+        { onConflict: 'key' }
+      );
+    } catch (e) {
+      console.warn(`Cloud sync for ${cloudKey} warning:`, e);
+    }
+  }
+
+  async syncFromSupabase(): Promise<void> {
+    if (this.isSyncing || typeof window === 'undefined') return;
+    this.isSyncing = true;
+    try {
+      // 1. Synchronize persistent cloud settings and backups from library_settings
+      const { data: settingsData } = await supabase.from('library_settings').select('*');
+      if (settingsData && settingsData.length > 0) {
+        for (const row of settingsData) {
+          if (row.key === 'library_books_v2' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.BOOKS, row.value);
+          }
+          if (row.key === 'library_students_v2' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.STUDENTS, row.value);
+          }
+          if (row.key === 'library_banners_v2' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.BANNERS, row.value);
+          }
+          if (row.key === 'library_records_v2' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.RECORDS, row.value);
+          }
+          if (row.key === 'library_requests_v2' && Array.isArray(row.value) && row.value.length > 0) {
+            this.setItem(STORAGE_KEYS.REQUESTS, row.value);
+          }
+        }
+      }
+
+      // 2. Fetch remote books from the books table if populated
+      const { data: remoteBooks } = await supabase.from('books').select('*');
+      if (remoteBooks && remoteBooks.length > 0) {
+        const currentBooks = this.getBooks();
+        const merged = [...currentBooks];
+        for (const rb of remoteBooks) {
+          if (!merged.some((b) => b.id === rb.id || b.book_code === rb.book_code)) {
+            merged.push({
+              id: rb.id,
+              si_number: rb.si_number || merged.length + 1,
+              book_code: rb.book_code || `KB-${String(merged.length + 1).padStart(3, '0')}`,
+              title_ar: rb.title_ar,
+              title_en: rb.title_en || '',
+              author_ar: (rb as any).author_ar || '',
+              author_en: (rb as any).author_en || '',
+              publisher_ar: (rb as any).publisher_ar || '',
+              publisher_en: (rb as any).publisher_en || '',
+              volume: rb.volume || '1',
+              pages: Number(rb.pages) || 0,
+              category_id: rb.category_id || 'cat-1',
+              category_name_ar: (rb as any).category_name_ar || 'عام',
+              category_name_en: (rb as any).category_name_en || 'General',
+              cover_url: rb.cover_path || '',
+              status: (rb.status as any) || 'available',
+              average_rating: Number(rb.average_rating) || 5.0,
+              ratings_count: Number(rb.ratings_count) || 1,
+              description_ar: rb.description_ar || '',
+              description_en: rb.description_en || '',
+              created_at: rb.created_at || new Date().toISOString(),
+            });
+          }
+        }
+        this.setItem(STORAGE_KEYS.BOOKS, merged);
+      }
+
+      // 3. Fetch remote reviews and ratings
+      const { data: rv } = await supabase.from('reviews').select('*');
+      if (rv && rv.length > 0) {
+        const currentReviews = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
+        const map = new Map<string, Review>();
+        currentReviews.forEach((r) => map.set(r.id, r));
+        rv.forEach((r: any) => {
+          map.set(r.id, {
+            id: r.id,
+            book_id: r.book_id,
+            reviewer_name: r.reviewer_name || 'قارئ',
+            content: r.content,
+            created_at: r.created_at,
+          });
+        });
+        this.setItem(STORAGE_KEYS.REVIEWS, Array.from(map.values()));
+      }
+    } catch (e) {
+      console.warn('Sync from Supabase notice:', e);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
   // Categories
   getCategories() {
     return this.getItem(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
@@ -604,6 +709,7 @@ class DataService {
         const updated = { ...list[idx], ...book };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BOOKS, list);
+        this.syncToCloud('library_books_v2', list);
         return updated;
       }
     }
@@ -633,12 +739,14 @@ class DataService {
     };
     list.unshift(newBook);
     this.setItem(STORAGE_KEYS.BOOKS, list);
+    this.syncToCloud('library_books_v2', list);
     return newBook;
   }
 
   deleteBook(id: string): void {
     const list = this.getBooks().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BOOKS, list);
+    this.syncToCloud('library_books_v2', list);
   }
 
   bulkAddBooks(rows: Partial<Book>[]): number {
@@ -673,6 +781,7 @@ class DataService {
       added++;
     }
     this.setItem(STORAGE_KEYS.BOOKS, list);
+    this.syncToCloud('library_books_v2', list);
     return added;
   }
 
@@ -693,6 +802,7 @@ class DataService {
         const updated = { ...list[idx], ...student };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.STUDENTS, list);
+        this.syncToCloud('library_students_v2', list);
         return updated;
       }
     }
@@ -709,12 +819,14 @@ class DataService {
     };
     list.unshift(newStudent);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
+    this.syncToCloud('library_students_v2', list);
     return newStudent;
   }
 
   deleteStudent(id: string): void {
     const list = this.getStudents().filter((s) => s.id !== id);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
+    this.syncToCloud('library_students_v2', list);
   }
 
   bulkAddStudents(rows: Partial<Student>[]): number {
@@ -736,6 +848,7 @@ class DataService {
       added++;
     }
     this.setItem(STORAGE_KEYS.STUDENTS, list);
+    this.syncToCloud('library_students_v2', list);
     return added;
   }
 
@@ -745,6 +858,7 @@ class DataService {
     if (!student) return false;
     student.secret_code = newCode.trim();
     this.setItem(STORAGE_KEYS.STUDENTS, list);
+    this.syncToCloud('library_students_v2', list);
     return true;
   }
 
@@ -761,6 +875,7 @@ class DataService {
         const updated = { ...list[idx], ...banner };
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BANNERS, list);
+        this.syncToCloud('library_banners_v2', list);
         return updated;
       }
     }
@@ -778,12 +893,14 @@ class DataService {
     };
     list.push(newBanner);
     this.setItem(STORAGE_KEYS.BANNERS, list);
+    this.syncToCloud('library_banners_v2', list);
     return newBanner;
   }
 
   deleteBanner(id: string): void {
     const list = this.getBanners().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BANNERS, list);
+    this.syncToCloud('library_banners_v2', list);
   }
 
   // Borrow Requests & Records
@@ -801,6 +918,7 @@ class DataService {
     };
     list.unshift(newReq);
     this.setItem(STORAGE_KEYS.REQUESTS, list);
+    this.syncToCloud('library_requests_v2', list);
     return newReq;
   }
 
@@ -811,6 +929,7 @@ class DataService {
       item.status = status;
       if (status === 'returned') item.returned_at = new Date().toISOString();
       this.setItem(STORAGE_KEYS.REQUESTS, list);
+      this.syncToCloud('library_requests_v2', list);
 
       // If approved, create active borrow record
       if (status === 'approved') {
@@ -826,6 +945,7 @@ class DataService {
           status: 'active',
         });
         this.setItem(STORAGE_KEYS.RECORDS, records);
+        this.syncToCloud('library_records_v2', records);
       } else if (status === 'returned') {
         const records = this.getBorrowRecords();
         const activeRec = records.find((r) => r.book_id === item.book_id && r.borrower_name === item.requester_name && r.status === 'active');
@@ -833,6 +953,7 @@ class DataService {
           activeRec.status = 'returned';
           activeRec.returned_at = new Date().toISOString();
           this.setItem(STORAGE_KEYS.RECORDS, records);
+          this.syncToCloud('library_records_v2', records);
         }
       }
     }
@@ -999,6 +1120,18 @@ class DataService {
     };
     list.unshift(newRev);
     this.setItem(STORAGE_KEYS.REVIEWS, list);
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(newRev.book_id)) {
+      supabase
+        .from('reviews')
+        .insert({
+          book_id: newRev.book_id,
+          content: newRev.content,
+          reviewer_name: newRev.reviewer_name,
+        })
+        .catch(() => {});
+    }
     return newRev;
   }
 
@@ -1013,6 +1146,18 @@ class DataService {
     });
     this.setItem(STORAGE_KEYS.RATINGS, ratings);
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(bookId)) {
+      supabase
+        .from('ratings')
+        .insert({
+          book_id: bookId,
+          stars,
+          rater_name: raterName.trim(),
+        })
+        .catch(() => {});
+    }
+
     const bookList = this.getBooks();
     const book = bookList.find((b) => b.id === bookId);
     let avg = stars;
@@ -1025,6 +1170,7 @@ class DataService {
       book.average_rating = avg;
       book.ratings_count = count;
       this.setItem(STORAGE_KEYS.BOOKS, bookList);
+      this.syncToCloud('library_books_v2', bookList);
     }
     return { average_rating: avg, ratings_count: count };
   }
