@@ -92,11 +92,14 @@ export type Database = {
       books: {
         Row: {
           author_id: string | null
+          author_name_ar: string | null
+          author_name_en: string | null
           available_copies: number
           average_rating: number
           book_code: string | null
           category_id: string | null
           cover_path: string | null
+          cover_url: string | null
           created_at: string
           description_ar: string | null
           description_en: string | null
@@ -110,6 +113,8 @@ export type Database = {
           pages: number | null
           published_year: number | null
           publisher_id: string | null
+          publisher_name_ar: string | null
+          publisher_name_en: string | null
           ratings_count: number
           si_number: number
           status: string
@@ -121,11 +126,14 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          author_name_ar?: string | null
+          author_name_en?: string | null
           available_copies?: number
           average_rating?: number
           book_code?: string | null
           category_id?: string | null
           cover_path?: string | null
+          cover_url?: string | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -139,6 +147,8 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher_id?: string | null
+          publisher_name_ar?: string | null
+          publisher_name_en?: string | null
           ratings_count?: number
           si_number?: number
           status?: string
@@ -150,11 +160,14 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          author_name_ar?: string | null
+          author_name_en?: string | null
           available_copies?: number
           average_rating?: number
           book_code?: string | null
           category_id?: string | null
           cover_path?: string | null
+          cover_url?: string | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -168,6 +181,8 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher_id?: string | null
+          publisher_name_ar?: string | null
+          publisher_name_en?: string | null
           ratings_count?: number
           si_number?: number
           status?: string
@@ -576,9 +591,57 @@ export type Database = {
         }
         Relationships: []
       }
+      students: {
+        Row: {
+          created_at: string
+          dob: string | null
+          father_name: string | null
+          house_name: string | null
+          id: string
+          klass: string
+          name: string
+          secret_code: string
+          spr_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dob?: string | null
+          father_name?: string | null
+          house_name?: string | null
+          id?: string
+          klass: string
+          name: string
+          secret_code: string
+          spr_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dob?: string | null
+          father_name?: string | null
+          house_name?: string | null
+          id?: string
+          klass?: string
+          name?: string
+          secret_code?: string
+          spr_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      students_directory: {
+        Row: {
+          created_at: string
+          id: string
+          klass: string
+          name: string
+          spr_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -590,6 +653,32 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       recompute_book_rating: { Args: { _book_id: string }; Returns: undefined }
+      verify_student_secret_code: {
+        Args: {
+          _code: string
+          _spr_id: string
+        }
+        Returns: boolean
+      }
+      verify_student_recovery: {
+        Args: {
+          _dob: string
+          _father: string
+          _house: string
+          _spr_id: string
+        }
+        Returns: boolean
+      }
+      reset_student_secret_code: {
+        Args: {
+          _dob: string
+          _father: string
+          _house: string
+          _new_code: string
+          _spr_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"

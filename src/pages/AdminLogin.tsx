@@ -27,46 +27,47 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
 
-    // Explicit Admin Password requirement: 159357123
-    if (password.trim() === '159357123') {
+    const email = usernameToEmail(username);
+
+    // 1. Attempt official Supabase Auth sign-in
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && authData?.session) {
+      await refreshProfile();
       setAdminSession(true);
-      const email = usernameToEmail(username);
-      await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
       setLoading(false);
       navigate('/admin', { replace: true });
       return;
     }
 
-    const email = usernameToEmail(username);
+    // 2. If password matches explicit admin master key 159357123
+    if (password.trim() === '159357123') {
+      setAdminSession(true);
+      setLoading(false);
+      navigate('/admin', { replace: true });
+      return;
+    }
 
-    // Try sign-in first
-    let { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    // If user does not exist yet, bootstrap by signing up (trigger assigns admin role for msoekutb)
+    // 3. If user does not exist yet, bootstrap by signing up (trigger assigns admin role for msoekutb)
     if (error && /invalid login credentials/i.test(error.message)) {
       const { error: suErr } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { username: username.trim().toLowerCase(), full_name: 'Administrator' } },
       });
-      if (suErr) {
-        toast({ title: suErr.message, variant: 'destructive' });
-        setLoading(false);
-        return;
+      if (!suErr) {
+        const retry = await supabase.auth.signInWithPassword({ email, password });
+        if (!retry.error && retry.data?.session) {
+          await refreshProfile();
+          setAdminSession(true);
+          setLoading(false);
+          navigate('/admin', { replace: true });
+          return;
+        }
       }
-      // Sign in after sign-up (auto-confirm is enabled)
-      const retry = await supabase.auth.signInWithPassword({ email, password });
-      error = retry.error;
     }
 
     setLoading(false);
-
-    if (error) {
-      toast({ title: t('invalidCreds'), description: error.message, variant: 'destructive' });
-      return;
-    }
-    await refreshProfile();
-    navigate('/admin', { replace: true });
+    toast({ title: t('invalidCreds'), description: error?.message || 'Invalid credentials', variant: 'destructive' });
   };
 
   return (

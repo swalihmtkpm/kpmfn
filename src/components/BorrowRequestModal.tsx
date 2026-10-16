@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/lib/i18n';
 import { dataService, Student } from '@/lib/dataService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Search,
@@ -104,15 +105,33 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
     );
   }, [students, studentSearch]);
 
-  // Handle Secret Code Verification
-  const handleVerifyCode = () => {
+  // Handle Secret Code Verification (Server-side RPC with resilient fallback)
+  const handleVerifyCode = async () => {
     if (!selectedStudent) return;
     if (!enteredSecretCode.trim()) {
       toast.error(t('enterSecretCode'));
       return;
     }
 
-    if (enteredSecretCode.trim() === selectedStudent.secret_code.trim()) {
+    try {
+      const { data: isValid, error } = await supabase.rpc('verify_student_secret_code', {
+        _spr_id: selectedStudent.spr_id,
+        _code: enteredSecretCode.trim(),
+      });
+      if (!error && typeof isValid === 'boolean') {
+        if (isValid) {
+          setIsVerified(true);
+          toast.success(t('codeVerified'));
+          return;
+        } else {
+          toast.error(lang === 'ar' ? 'الرمز السري غير صحيح' : 'Incorrect secret code');
+          return;
+        }
+      }
+    } catch {}
+
+    // Resilient fallback to local record
+    if (selectedStudent.secret_code && enteredSecretCode.trim() === selectedStudent.secret_code.trim()) {
       setIsVerified(true);
       toast.success(t('codeVerified'));
     } else {
@@ -120,11 +139,30 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
     }
   };
 
-  // Handle Forgot Password Verification (Strict: CAPITAL LETTERS and NO SPACES)
-  const handleVerifyRecovery = () => {
+  // Handle Forgot Password Verification (Server-side RPC with strict normalization)
+  const handleVerifyRecovery = async () => {
     if (!selectedStudent) return;
 
-    // Normalize input: strip all whitespace and convert to UPPERCASE
+    try {
+      const { data: isValid, error } = await supabase.rpc('verify_student_recovery', {
+        _spr_id: selectedStudent.spr_id,
+        _father: recoveryFather.trim(),
+        _house: recoveryHouse.trim(),
+        _dob: recoveryDob.trim(),
+      });
+      if (!error && typeof isValid === 'boolean') {
+        if (isValid) {
+          setRecoveryVerified(true);
+          toast.success(lang === 'ar' ? 'تم التحقق من بياناتك بنجاح' : 'Identity verified successfully');
+          return;
+        } else {
+          toast.error(t('verificationFailed'));
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback local verification
     const inputFather = recoveryFather.replace(/\s+/g, '').toUpperCase();
     const inputHouse = recoveryHouse.replace(/\s+/g, '').toUpperCase();
     const inputDob = recoveryDob.trim();
@@ -148,19 +186,29 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
   // Option 1: Continue with existing password
   const handleContinueWithExisting = () => {
     if (!selectedStudent) return;
-    setEnteredSecretCode(selectedStudent.secret_code);
+    setEnteredSecretCode(selectedStudent.secret_code || '');
     setIsVerified(true);
     setIsForgotMode(false);
     toast.success(t('codeVerified'));
   };
 
-  // Option 2: Save new password
-  const handleSaveNewPassword = () => {
+  // Option 2: Save new password (Server-side RPC with local sync)
+  const handleSaveNewPassword = async () => {
     if (!selectedStudent) return;
     if (!newSecretCode.trim() || newSecretCode.trim().length < 3) {
       toast.error(lang === 'ar' ? 'الرجاء إدخال رمز سري صالح (3 أحرف أو أرقام على الأقل)' : 'Please enter valid secret code');
       return;
     }
+
+    try {
+      await supabase.rpc('reset_student_secret_code', {
+        _spr_id: selectedStudent.spr_id,
+        _father: recoveryFather.trim(),
+        _house: recoveryHouse.trim(),
+        _dob: recoveryDob.trim(),
+        _new_code: newSecretCode.trim(),
+      });
+    } catch {}
 
     dataService.updateStudentPassword(selectedStudent.id, newSecretCode.trim());
     selectedStudent.secret_code = newSecretCode.trim();

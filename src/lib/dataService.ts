@@ -618,42 +618,102 @@ class DataService {
         }
       }
 
-      // 2. Fetch remote books from the books table if populated
+      // 2. Fetch remote categories
+      const { data: remoteCats } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
+      if (remoteCats && remoteCats.length > 0) {
+        this.setItem(STORAGE_KEYS.CATEGORIES, remoteCats);
+      }
+      const allCategories = this.getCategories();
+      const catMap = new Map(allCategories.map((c) => [c.id, c]));
+
+      // 3. Fetch remote books from the books table if populated
       const { data: remoteBooks } = await supabase.from('books').select('*');
       if (remoteBooks && remoteBooks.length > 0) {
         const currentBooks = this.getBooks();
-        const merged = [...currentBooks];
+        const map = new Map(currentBooks.map((b) => [b.book_code, b]));
         for (const rb of remoteBooks) {
-          if (!merged.some((b) => b.id === rb.id || b.book_code === rb.book_code)) {
-            merged.push({
-              id: rb.id,
-              si_number: rb.si_number || merged.length + 1,
-              book_code: rb.book_code || `KB-${String(merged.length + 1).padStart(3, '0')}`,
-              title_ar: rb.title_ar,
-              title_en: rb.title_en || '',
-              author_ar: (rb as any).author_ar || '',
-              author_en: (rb as any).author_en || '',
-              publisher_ar: (rb as any).publisher_ar || '',
-              publisher_en: (rb as any).publisher_en || '',
-              volume: rb.volume || '1',
-              pages: Number(rb.pages) || 0,
-              category_id: rb.category_id || 'cat-1',
-              category_name_ar: (rb as any).category_name_ar || 'عام',
-              category_name_en: (rb as any).category_name_en || 'General',
-              cover_url: rb.cover_path || '',
-              status: (rb.status as any) || 'available',
-              average_rating: Number(rb.average_rating) || 5.0,
-              ratings_count: Number(rb.ratings_count) || 1,
-              description_ar: rb.description_ar || '',
-              description_en: rb.description_en || '',
-              created_at: rb.created_at || new Date().toISOString(),
-            });
-          }
+          const cat = catMap.get(rb.category_id || '');
+          const existing = map.get(rb.book_code || '') || currentBooks.find((b) => b.id === rb.id);
+          const mapped: Book = {
+            id: rb.id,
+            si_number: rb.si_number || (existing ? existing.si_number : currentBooks.length + 1),
+            book_code: rb.book_code || (existing ? existing.book_code : `KB-${String(currentBooks.length + 1).padStart(3, '0')}`),
+            title_ar: rb.title_ar,
+            title_en: rb.title_en || '',
+            author_ar: (rb as any).author_name_ar || (rb as any).author_ar || existing?.author_ar || '',
+            author_en: (rb as any).author_name_en || (rb as any).author_en || existing?.author_en || '',
+            publisher_ar: (rb as any).publisher_name_ar || (rb as any).publisher_ar || existing?.publisher_ar || '',
+            publisher_en: (rb as any).publisher_name_en || (rb as any).publisher_en || existing?.publisher_en || '',
+            volume: rb.volume || existing?.volume || '1',
+            pages: Number(rb.pages) || existing?.pages || 0,
+            category_id: rb.category_id || existing?.category_id || 'c0000001-0000-0000-0000-000000000001',
+            category_name_ar: cat?.name_ar || existing?.category_name_ar || 'عام',
+            category_name_en: cat?.name_en || existing?.category_name_en || 'General',
+            cover_url: (rb as any).cover_url || rb.cover_path || existing?.cover_url || '',
+            status: ((rb.status as any) || existing?.status || 'available') as BookStatus,
+            average_rating: Number(rb.average_rating) || existing?.average_rating || 5.0,
+            ratings_count: Number(rb.ratings_count) || existing?.ratings_count || 1,
+            description_ar: rb.description_ar || existing?.description_ar || '',
+            description_en: rb.description_en || existing?.description_en || '',
+            created_at: rb.created_at || existing?.created_at || new Date().toISOString(),
+          };
+          map.set(mapped.book_code, mapped);
         }
-        this.setItem(STORAGE_KEYS.BOOKS, merged);
+        this.setItem(STORAGE_KEYS.BOOKS, Array.from(map.values()));
       }
 
-      // 3. Fetch remote reviews and ratings
+      // 4. Fetch remote advertisements and preserve them
+      const { data: remoteAds } = await supabase.from('advertisements').select('*').order('sort_order', { ascending: true });
+      if (remoteAds && remoteAds.length > 0) {
+        const currentBanners = this.getBanners();
+        const bMap = new Map(currentBanners.map((b) => [b.id, b]));
+        for (const ad of remoteAds) {
+          const mediaUrl = ad.image_path?.startsWith('http')
+            ? ad.image_path
+            : 'https://images.unsplash.com/photo-1507842229452-94429e2467b7?auto=format&fit=crop&w=1600&q=80';
+          bMap.set(ad.id, {
+            id: ad.id,
+            type: 'image',
+            media_url: mediaUrl,
+            title_ar: ad.title_ar,
+            title_en: ad.title_en || '',
+            subtitle_ar: ad.link_url || '',
+            subtitle_en: '',
+            is_active: ad.is_active,
+            sort_order: ad.sort_order,
+            created_at: ad.created_at,
+          });
+        }
+        this.setItem(STORAGE_KEYS.BANNERS, Array.from(bMap.values()));
+      }
+
+      // 5. Fetch remote students (admin gets full table, public gets directory)
+      try {
+        const { data: remoteStudents } = await supabase.from('students').select('*');
+        if (remoteStudents && remoteStudents.length > 0) {
+          this.setItem(STORAGE_KEYS.STUDENTS, remoteStudents);
+        } else {
+          const { data: dirStudents } = await supabase.from('students_directory').select('*');
+          if (dirStudents && dirStudents.length > 0) {
+            const current = this.getStudents();
+            const map = new Map(current.map((s) => [s.spr_id, s]));
+            const merged = dirStudents.map((ds: any) => ({
+              id: ds.id,
+              name: ds.name,
+              klass: ds.klass,
+              spr_id: ds.spr_id,
+              secret_code: map.get(ds.spr_id)?.secret_code || '',
+              father_name: map.get(ds.spr_id)?.father_name || '',
+              house_name: map.get(ds.spr_id)?.house_name || '',
+              dob: map.get(ds.spr_id)?.dob || '',
+              created_at: ds.created_at || new Date().toISOString(),
+            }));
+            this.setItem(STORAGE_KEYS.STUDENTS, merged);
+          }
+        }
+      } catch {}
+
+      // 6. Fetch remote reviews and ratings
       const { data: rv } = await supabase.from('reviews').select('*');
       if (rv && rv.length > 0) {
         const currentReviews = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
@@ -710,6 +770,7 @@ class DataService {
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BOOKS, list);
         this.syncToCloud('library_books_v2', list);
+        this.syncBookDirectToSupabase(updated);
         return updated;
       }
     }
@@ -740,13 +801,50 @@ class DataService {
     list.unshift(newBook);
     this.setItem(STORAGE_KEYS.BOOKS, list);
     this.syncToCloud('library_books_v2', list);
+    this.syncBookDirectToSupabase(newBook);
     return newBook;
+  }
+
+  private syncBookDirectToSupabase(b: Book) {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    supabase
+      .from('books')
+      .upsert(
+        {
+          id: UUID_REGEX.test(b.id) ? b.id : undefined,
+          book_code: b.book_code,
+          title_ar: b.title_ar,
+          title_en: b.title_en || null,
+          author_name_ar: b.author_ar || null,
+          author_name_en: b.author_en || null,
+          publisher_name_ar: b.publisher_ar || null,
+          publisher_name_en: b.publisher_en || null,
+          volume: b.volume || '1',
+          pages: b.pages || 0,
+          category_id: UUID_REGEX.test(b.category_id) ? b.category_id : null,
+          cover_url: b.cover_url || null,
+          status: b.status || 'available',
+          average_rating: b.average_rating || 5.0,
+          ratings_count: b.ratings_count || 1,
+          description_ar: b.description_ar || null,
+          description_en: b.description_en || null,
+        },
+        { onConflict: 'book_code' }
+      )
+      .catch(() => {});
   }
 
   deleteBook(id: string): void {
     const list = this.getBooks().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BOOKS, list);
     this.syncToCloud('library_books_v2', list);
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(id)) {
+      supabase.from('books').delete().eq('id', id).catch(() => {});
+    } else {
+      supabase.from('books').delete().eq('book_code', id).catch(() => {});
+    }
   }
 
   bulkAddBooks(rows: Partial<Book>[]): number {
@@ -803,6 +901,7 @@ class DataService {
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.STUDENTS, list);
         this.syncToCloud('library_students_v2', list);
+        this.syncStudentDirectToSupabase(updated);
         return updated;
       }
     }
@@ -820,13 +919,41 @@ class DataService {
     list.unshift(newStudent);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v2', list);
+    this.syncStudentDirectToSupabase(newStudent);
     return newStudent;
+  }
+
+  private syncStudentDirectToSupabase(s: Student) {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    supabase
+      .from('students')
+      .upsert(
+        {
+          id: UUID_REGEX.test(s.id) ? s.id : undefined,
+          name: s.name,
+          klass: s.klass,
+          spr_id: s.spr_id,
+          secret_code: s.secret_code,
+          father_name: s.father_name || null,
+          house_name: s.house_name || null,
+          dob: s.dob || null,
+        },
+        { onConflict: 'spr_id' }
+      )
+      .catch(() => {});
   }
 
   deleteStudent(id: string): void {
     const list = this.getStudents().filter((s) => s.id !== id);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v2', list);
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(id)) {
+      supabase.from('students').delete().eq('id', id).catch(() => {});
+    } else {
+      supabase.from('students').delete().eq('spr_id', id).catch(() => {});
+    }
   }
 
   bulkAddStudents(rows: Partial<Student>[]): number {
@@ -859,6 +986,7 @@ class DataService {
     student.secret_code = newCode.trim();
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v2', list);
+    this.syncStudentDirectToSupabase(student);
     return true;
   }
 
@@ -876,6 +1004,7 @@ class DataService {
         list[idx] = updated;
         this.setItem(STORAGE_KEYS.BANNERS, list);
         this.syncToCloud('library_banners_v2', list);
+        this.syncBannerDirectToSupabase(updated);
         return updated;
       }
     }
@@ -894,13 +1023,35 @@ class DataService {
     list.push(newBanner);
     this.setItem(STORAGE_KEYS.BANNERS, list);
     this.syncToCloud('library_banners_v2', list);
+    this.syncBannerDirectToSupabase(newBanner);
     return newBanner;
+  }
+
+  private syncBannerDirectToSupabase(b: Banner) {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    supabase
+      .from('advertisements')
+      .upsert({
+        id: UUID_REGEX.test(b.id) ? b.id : undefined,
+        title_ar: b.title_ar || 'إعلان',
+        title_en: b.title_en || null,
+        image_path: b.media_url,
+        link_url: b.subtitle_ar || null,
+        is_active: b.is_active,
+        sort_order: b.sort_order,
+      })
+      .catch(() => {});
   }
 
   deleteBanner(id: string): void {
     const list = this.getBanners().filter((b) => b.id !== id);
     this.setItem(STORAGE_KEYS.BANNERS, list);
     this.syncToCloud('library_banners_v2', list);
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(id)) {
+      supabase.from('advertisements').delete().eq('id', id).catch(() => {});
+    }
   }
 
   // Borrow Requests & Records
