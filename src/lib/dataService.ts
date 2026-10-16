@@ -693,6 +693,15 @@ class DataService {
     }
   }
 
+  isAdminAuthenticated(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('imthiyaz_admin_session') === '1';
+    } catch {
+      return false;
+    }
+  }
+
   private isSyncing = false;
 
   constructor() {
@@ -869,6 +878,17 @@ class DataService {
   // Categories
   getCategories() {
     return this.getItem(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+  }
+
+  getCategoryBookCounts(): Record<string, number> {
+    const books = this.getBooks();
+    const counts: Record<string, number> = {};
+    for (const b of books) {
+      if (b.category_id) {
+        counts[b.category_id] = (counts[b.category_id] || 0) + 1;
+      }
+    }
+    return counts;
   }
 
   // Books

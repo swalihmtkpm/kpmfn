@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { Download, Upload, KeyRound, Globe2, BookOpen, Database, Users, Plus, Trash2 } from 'lucide-react';
+import { dataService } from '@/lib/dataService';
 
 const INFO_KEY = 'library_info';
 const BACKUP_TABLES = ['categories', 'authors', 'publishers', 'books', 'advertisements', 'library_settings'] as const;
@@ -170,16 +171,16 @@ export default function SettingsPanel() {
 
 function CategoriesSection() {
   const { t, lang } = useI18n();
-  const [categories, setCategories] = useState(dataService.getCategories());
-  const [categoryCounts, setCategoryCounts] = useState(dataService.getCategoryBookCounts());
+  const [categories, setCategories] = useState(() => dataService.getCategories?.() || []);
+  const [categoryCounts, setCategoryCounts] = useState(() => dataService.getCategoryBookCounts?.() || {});
 
   // Add / Edit Dialog state
   const [editingCat, setEditingCat] = useState<{ id?: string; name_ar: string; name_en: string; color: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const reload = () => {
-    setCategories(dataService.getCategories());
-    setCategoryCounts(dataService.getCategoryBookCounts());
+    setCategories(dataService.getCategories?.() || []);
+    setCategoryCounts(dataService.getCategoryBookCounts?.() || {});
   };
 
   const handleOpenAdd = () => {
