@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState, useEffect } from 'react';
+import { ReactNode, useRef, useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   LogOut,
@@ -11,10 +11,13 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Trophy,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import { dataService } from '@/lib/dataService';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { t, lang, setLang } = useI18n();
