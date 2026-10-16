@@ -1,6 +1,7 @@
 import { BookOpen, Star, Sparkles, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { convertDriveUrl } from '@/lib/dataService';
 
@@ -36,7 +37,7 @@ export default function BookGrid({ books }: Props) {
     );
   }
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -47,14 +48,14 @@ export default function BookGrid({ books }: Props) {
     },
   };
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 16 },
     show: {
       opacity: 1,
       y: 0,
       transition: {
         duration: shouldReduceMotion ? 0.01 : 0.45,
-        ease: [0.22, 1, 0.36, 1],
+        ease: [0.22, 1, 0.36, 1] as const,
       },
     },
   };

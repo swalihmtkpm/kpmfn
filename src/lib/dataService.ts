@@ -842,6 +842,25 @@ class DataService {
     return this.getItem(STORAGE_KEYS.RECORDS, DEFAULT_RECORDS);
   }
 
+  updateRecordDueDate(id: string, dueAt: string): boolean {
+    const records = this.getBorrowRecords();
+    const record = records.find((item) => item.id === id);
+    if (!record) return false;
+    record.due_at = dueAt;
+    this.setItem(STORAGE_KEYS.RECORDS, records);
+    return true;
+  }
+
+  markRecordReturned(id: string): boolean {
+    const records = this.getBorrowRecords();
+    const record = records.find((item) => item.id === id);
+    if (!record) return false;
+    record.status = 'returned';
+    record.returned_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.RECORDS, records);
+    return true;
+  }
+
   // Stats helpers requested:
   // "if admin click on any book name in the admin panels book adding session,how much users borrowed /requested/returned about that book should show."
   getBookStats(bookId: string) {

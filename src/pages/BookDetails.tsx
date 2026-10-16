@@ -278,7 +278,8 @@ export default function BookDetails() {
 
       // If id is a valid UUID, also sync to Supabase
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-        supabase.from('ratings').insert({ book_id: id, stars: s, rater_name: reviewerName.trim() }).catch(() => {});
+        const { error } = await supabase.from('ratings').insert({ book_id: id, stars: s, rater_name: reviewerName.trim() });
+        if (error) console.warn('Could not sync book rating:', error.message);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error saving rating');
@@ -308,7 +309,8 @@ export default function BookDetails() {
 
       // If id is a valid UUID, also sync to Supabase
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-        supabase.from('reviews').insert({ book_id: id, content: reviewText.trim(), reviewer_name: reviewerName.trim() }).catch(() => {});
+        const { error } = await supabase.from('reviews').insert({ book_id: id, content: reviewText.trim(), reviewer_name: reviewerName.trim() });
+        if (error) console.warn('Could not sync book review:', error.message);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error submitting review');
