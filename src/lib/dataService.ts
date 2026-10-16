@@ -805,33 +805,36 @@ class DataService {
     return newBook;
   }
 
-  private syncBookDirectToSupabase(b: Book) {
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    supabase
-      .from('books')
-      .upsert(
-        {
-          id: UUID_REGEX.test(b.id) ? b.id : undefined,
-          book_code: b.book_code,
-          title_ar: b.title_ar,
-          title_en: b.title_en || null,
-          author_name_ar: b.author_ar || null,
-          author_name_en: b.author_en || null,
-          publisher_name_ar: b.publisher_ar || null,
-          publisher_name_en: b.publisher_en || null,
-          volume: b.volume || '1',
-          pages: b.pages || 0,
-          category_id: UUID_REGEX.test(b.category_id) ? b.category_id : null,
-          cover_url: b.cover_url || null,
-          status: b.status || 'available',
-          average_rating: b.average_rating || 5.0,
-          ratings_count: b.ratings_count || 1,
-          description_ar: b.description_ar || null,
-          description_en: b.description_en || null,
-        },
-        { onConflict: 'book_code' }
-      )
-      .catch(() => {});
+  private async syncBookDirectToSupabase(b: Book): Promise<void> {
+    try {
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      await supabase
+        .from('books')
+        .upsert(
+          {
+            id: UUID_REGEX.test(b.id) ? b.id : undefined,
+            book_code: b.book_code,
+            title_ar: b.title_ar,
+            title_en: b.title_en || null,
+            author_name_ar: b.author_ar || null,
+            author_name_en: b.author_en || null,
+            publisher_name_ar: b.publisher_ar || null,
+            publisher_name_en: b.publisher_en || null,
+            volume: b.volume || '1',
+            pages: b.pages || 0,
+            category_id: UUID_REGEX.test(b.category_id) ? b.category_id : null,
+            cover_url: b.cover_url || null,
+            status: b.status || 'available',
+            average_rating: b.average_rating || 5.0,
+            ratings_count: b.ratings_count || 1,
+            description_ar: b.description_ar || null,
+            description_en: b.description_en || null,
+          },
+          { onConflict: 'book_code' }
+        );
+    } catch (e) {
+      console.warn('syncBookDirectToSupabase notice:', e);
+    }
   }
 
   deleteBook(id: string): void {
@@ -839,12 +842,18 @@ class DataService {
     this.setItem(STORAGE_KEYS.BOOKS, list);
     this.syncToCloud('library_books_v2', list);
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(id)) {
-      supabase.from('books').delete().eq('id', id).catch(() => {});
-    } else {
-      supabase.from('books').delete().eq('book_code', id).catch(() => {});
-    }
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await supabase.from('books').delete().eq('id', id);
+        } else {
+          await supabase.from('books').delete().eq('book_code', id);
+        }
+      } catch (e) {
+        console.warn('deleteBook Supabase notice:', e);
+      }
+    })();
   }
 
   bulkAddBooks(rows: Partial<Book>[]): number {
@@ -923,24 +932,27 @@ class DataService {
     return newStudent;
   }
 
-  private syncStudentDirectToSupabase(s: Student) {
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    supabase
-      .from('students')
-      .upsert(
-        {
-          id: UUID_REGEX.test(s.id) ? s.id : undefined,
-          name: s.name,
-          klass: s.klass,
-          spr_id: s.spr_id,
-          secret_code: s.secret_code,
-          father_name: s.father_name || null,
-          house_name: s.house_name || null,
-          dob: s.dob || null,
-        },
-        { onConflict: 'spr_id' }
-      )
-      .catch(() => {});
+  private async syncStudentDirectToSupabase(s: Student): Promise<void> {
+    try {
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      await supabase
+        .from('students')
+        .upsert(
+          {
+            id: UUID_REGEX.test(s.id) ? s.id : undefined,
+            name: s.name,
+            klass: s.klass,
+            spr_id: s.spr_id,
+            secret_code: s.secret_code,
+            father_name: s.father_name || null,
+            house_name: s.house_name || null,
+            dob: s.dob || null,
+          },
+          { onConflict: 'spr_id' }
+        );
+    } catch (e) {
+      console.warn('syncStudentDirectToSupabase notice:', e);
+    }
   }
 
   deleteStudent(id: string): void {
@@ -948,12 +960,18 @@ class DataService {
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v2', list);
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(id)) {
-      supabase.from('students').delete().eq('id', id).catch(() => {});
-    } else {
-      supabase.from('students').delete().eq('spr_id', id).catch(() => {});
-    }
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await supabase.from('students').delete().eq('id', id);
+        } else {
+          await supabase.from('students').delete().eq('spr_id', id);
+        }
+      } catch (e) {
+        console.warn('deleteStudent Supabase notice:', e);
+      }
+    })();
   }
 
   bulkAddStudents(rows: Partial<Student>[]): number {
@@ -1027,20 +1045,23 @@ class DataService {
     return newBanner;
   }
 
-  private syncBannerDirectToSupabase(b: Banner) {
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    supabase
-      .from('advertisements')
-      .upsert({
-        id: UUID_REGEX.test(b.id) ? b.id : undefined,
-        title_ar: b.title_ar || 'إعلان',
-        title_en: b.title_en || null,
-        image_path: b.media_url,
-        link_url: b.subtitle_ar || null,
-        is_active: b.is_active,
-        sort_order: b.sort_order,
-      })
-      .catch(() => {});
+  private async syncBannerDirectToSupabase(b: Banner): Promise<void> {
+    try {
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      await supabase
+        .from('advertisements')
+        .upsert({
+          id: UUID_REGEX.test(b.id) ? b.id : undefined,
+          title_ar: b.title_ar || 'إعلان',
+          title_en: b.title_en || null,
+          image_path: b.media_url,
+          link_url: b.subtitle_ar || null,
+          is_active: b.is_active,
+          sort_order: b.sort_order,
+        });
+    } catch (e) {
+      console.warn('syncBannerDirectToSupabase notice:', e);
+    }
   }
 
   deleteBanner(id: string): void {
@@ -1048,10 +1069,16 @@ class DataService {
     this.setItem(STORAGE_KEYS.BANNERS, list);
     this.syncToCloud('library_banners_v2', list);
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(id)) {
-      supabase.from('advertisements').delete().eq('id', id).catch(() => {});
-    }
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await supabase.from('advertisements').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn('deleteBanner Supabase notice:', e);
+      }
+    })();
   }
 
   // Borrow Requests & Records
@@ -1274,14 +1301,19 @@ class DataService {
 
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (UUID_REGEX.test(newRev.book_id)) {
-      supabase
-        .from('reviews')
-        .insert({
-          book_id: newRev.book_id,
-          content: newRev.content,
-          reviewer_name: newRev.reviewer_name,
-        })
-        .catch(() => {});
+      (async () => {
+        try {
+          await supabase
+            .from('reviews')
+            .insert({
+              book_id: newRev.book_id,
+              content: newRev.content,
+              reviewer_name: newRev.reviewer_name,
+            });
+        } catch (e) {
+          console.warn('addReview Supabase notice:', e);
+        }
+      })();
     }
     return newRev;
   }
@@ -1299,14 +1331,19 @@ class DataService {
 
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (UUID_REGEX.test(bookId)) {
-      supabase
-        .from('ratings')
-        .insert({
-          book_id: bookId,
-          stars,
-          rater_name: raterName.trim(),
-        })
-        .catch(() => {});
+      (async () => {
+        try {
+          await supabase
+            .from('ratings')
+            .insert({
+              book_id: bookId,
+              stars,
+              rater_name: raterName.trim(),
+            });
+        } catch (e) {
+          console.warn('addRating Supabase notice:', e);
+        }
+      })();
     }
 
     const bookList = this.getBooks();
