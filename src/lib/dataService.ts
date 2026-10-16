@@ -82,6 +82,23 @@ export type BorrowRecord = {
   status: 'active' | 'returned' | 'overdue';
 };
 
+export type Review = {
+  id: string;
+  book_id: string;
+  reviewer_name: string;
+  content: string;
+  rating?: number;
+  created_at: string;
+};
+
+export type RatingRecord = {
+  id: string;
+  book_id: string;
+  stars: number;
+  rater_name: string;
+  created_at: string;
+};
+
 /**
  * Converts any Google Drive URL into a direct, high-performance displayable URL.
  * Supports:
@@ -119,7 +136,28 @@ const STORAGE_KEYS = {
   REQUESTS: 'imthiyaz_borrow_requests_v2',
   RECORDS: 'imthiyaz_borrow_records_v2',
   CATEGORIES: 'imthiyaz_categories_v2',
+  REVIEWS: 'imthiyaz_reviews_v2',
+  RATINGS: 'imthiyaz_ratings_v2',
 };
+
+export const DEFAULT_REVIEWS: Review[] = [
+  {
+    id: 'rev-1',
+    book_id: 'bk-1',
+    reviewer_name: 'أحمد بن عبد الله',
+    content: 'طبعة محققة رائعة ومضبوطة بالشكل الكامل، لا غنى عنها لأي طالب علم.',
+    rating: 5,
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+  },
+  {
+    id: 'rev-2',
+    book_id: 'bk-3',
+    reviewer_name: 'محمد الشافعي',
+    content: 'من أنفس شروح صحيح البخاري، مفيد جداً في ضبط الألفاظ واستنباط الأحكام الفقهية.',
+    rating: 5,
+    created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+];
 
 // Seed Categories
 export const DEFAULT_CATEGORIES = [
@@ -924,6 +962,52 @@ class DataService {
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Books_Template');
     XLSX.writeFile(wb, 'Books_Bulk_Upload_Template.xlsx');
+  }
+
+  // Reviews & Ratings methods for Book Details post functions
+  getReviews(bookId?: string): Review[] {
+    const list = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
+    if (!bookId) return list;
+    return list.filter((r) => r.book_id === bookId);
+  }
+
+  addReview(review: Omit<Review, 'id' | 'created_at'>): Review {
+    const list = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
+    const newRev: Review = {
+      ...review,
+      id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      created_at: new Date().toISOString(),
+    };
+    list.unshift(newRev);
+    this.setItem(STORAGE_KEYS.REVIEWS, list);
+    return newRev;
+  }
+
+  addRating(bookId: string, stars: number, raterName: string): { average_rating: number; ratings_count: number } {
+    const ratings = this.getItem<RatingRecord[]>(STORAGE_KEYS.RATINGS, []);
+    ratings.unshift({
+      id: `rat-${Date.now()}`,
+      book_id: bookId,
+      stars,
+      rater_name: raterName.trim(),
+      created_at: new Date().toISOString(),
+    });
+    this.setItem(STORAGE_KEYS.RATINGS, ratings);
+
+    const bookList = this.getBooks();
+    const book = bookList.find((b) => b.id === bookId);
+    let avg = stars;
+    let count = 1;
+    if (book) {
+      const bookRatings = ratings.filter((r) => r.book_id === bookId);
+      count = (book.ratings_count || 0) + 1;
+      const totalStars = bookRatings.reduce((sum, r) => sum + r.stars, (book.average_rating || 5) * (book.ratings_count || 1));
+      avg = Math.min(5, Math.max(1, Number((totalStars / (bookRatings.length + (book.ratings_count || 1))).toFixed(1))));
+      book.average_rating = avg;
+      book.ratings_count = count;
+      this.setItem(STORAGE_KEYS.BOOKS, bookList);
+    }
+    return { average_rating: avg, ratings_count: count };
   }
 }
 

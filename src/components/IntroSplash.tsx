@@ -5,12 +5,15 @@ export default function IntroSplash({ onDone }: { onDone: () => void }) {
   const { t } = useI18n();
 
   useEffect(() => {
-    const id = setTimeout(onDone, 2600);
+    const id = setTimeout(onDone, 900);
     return () => clearTimeout(id);
   }, [onDone]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background overflow-hidden">
+    <div
+      onClick={onDone}
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background overflow-hidden cursor-pointer select-none transition-opacity duration-300"
+    >
       <div
         className="relative flex items-center justify-center"
         style={{ animation: 'logo-pop 0.9s cubic-bezier(.2,.8,.2,1) both' }}

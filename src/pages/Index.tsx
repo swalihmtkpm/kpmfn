@@ -26,13 +26,13 @@ export default function Index() {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
-  const [allBooks, setAllBooks] = useState<Book[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [allBooks, setAllBooks] = useState<Book[]>(() => dataService.getBooks());
+  const [banners, setBanners] = useState<Banner[]>(() => dataService.getBanners());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
-    // Load active books and banners from dataService
+    // Refresh books and banners in case of background updates
     const bks = dataService.getBooks();
     const bans = dataService.getBanners();
     setAllBooks(bks);

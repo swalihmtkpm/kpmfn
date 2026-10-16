@@ -1,26 +1,15 @@
+import { BrandSpinner, FullPageLoader as EnhancedFullPageLoader } from './LoadingIndicator';
+
 type Props = { size?: number; className?: string };
 
 /**
- * Library logo rotating continuously anticlockwise. Used as the universal loading indicator.
+ * Universal Brand Loading Spinner with Islamic-minimalist concentric rings
  */
 export default function LogoSpinner({ size = 56, className = '' }: Props) {
-  return (
-    <img
-      src="/library-logo.png"
-      alt="loading"
-      width={size}
-      height={size}
-      className={`animate-spin-cw logo-adaptive select-none ${className}`}
-      style={{ width: size, height: size }}
-      draggable={false}
-    />
-  );
+  return <BrandSpinner size={size} className={className} />;
 }
 
-export function FullPageLoader({ size = 96 }: { size?: number }) {
-  return (
-    <div className="min-h-[40vh] w-full flex items-center justify-center py-12">
-      <LogoSpinner size={size} />
-    </div>
-  );
+export function FullPageLoader({ size = 64, text }: { size?: number; text?: string }) {
+  return <EnhancedFullPageLoader size={size} text={text} />;
 }
+

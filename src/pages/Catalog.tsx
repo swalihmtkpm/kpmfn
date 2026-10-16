@@ -13,13 +13,13 @@ export default function Catalog() {
   const { t, lang } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [books, setBooks] = useState<Book[]>([]);
+  const [books, setBooks] = useState<Book[]>(() => dataService.getBooks());
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') ?? 'all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'missed'>('all');
 
   useEffect(() => {
-    // Load all books from dataService
+    // Refresh books in case of updates
     const list = dataService.getBooks();
     setBooks(list);
   }, []);
