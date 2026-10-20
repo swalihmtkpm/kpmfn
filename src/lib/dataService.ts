@@ -373,7 +373,7 @@ class DataService {
     } catch {}
 
     try {
-      const { error: sErr } = await supabase.from('students').select('id').limit(1);
+      const { error: sErr } = await (supabase as any).from('students').select('id').limit(1);
       studentsAccessible = !sErr;
     } catch {}
 
@@ -426,7 +426,7 @@ class DataService {
     (async () => {
       try {
         await supabase.from('books').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await (supabase as any).from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('borrow_requests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('borrow_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await (supabase as any).from('reading_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -556,11 +556,11 @@ class DataService {
 
       // 5. Fetch remote students (admin gets full table, public gets directory)
       try {
-        const { data: remoteStudents } = await supabase.from('students').select('*');
+        const { data: remoteStudents } = await (supabase as any).from('students').select('*');
         if (remoteStudents && remoteStudents.length > 0) {
           this.setItem(STORAGE_KEYS.STUDENTS, remoteStudents);
         } else {
-          const { data: dirStudents } = await supabase.from('students_directory').select('*');
+          const { data: dirStudents } = await (supabase as any).from('students_directory').select('*');
           if (dirStudents && dirStudents.length > 0) {
             const current = this.getStudents();
             const map = new Map(current.map((s) => [s.spr_id, s]));
@@ -869,7 +869,7 @@ class DataService {
   private async syncStudentDirectToSupabase(s: Student): Promise<void> {
     try {
       const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      await supabase
+      await (supabase as any)
         .from('students')
         .upsert(
           {
@@ -898,9 +898,9 @@ class DataService {
       try {
         const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (UUID_REGEX.test(id)) {
-          await supabase.from('students').delete().eq('id', id);
+          await (supabase as any).from('students').delete().eq('id', id);
         } else {
-          await supabase.from('students').delete().eq('spr_id', id);
+          await (supabase as any).from('students').delete().eq('spr_id', id);
         }
       } catch (e) {
         console.warn('deleteStudent Supabase notice:', e);
@@ -1345,10 +1345,10 @@ class DataService {
         const uuidIds = ids.filter((id) => UUID_REGEX.test(id));
         const sprIds = ids.filter((id) => !UUID_REGEX.test(id));
         if (uuidIds.length > 0) {
-          await supabase.from('students').delete().in('id', uuidIds);
+          await (supabase as any).from('students').delete().in('id', uuidIds);
         }
         if (sprIds.length > 0) {
-          await supabase.from('students').delete().in('spr_id', sprIds);
+          await (supabase as any).from('students').delete().in('spr_id', sprIds);
         }
       } catch (e) {
         console.warn('bulkDeleteStudents notice:', e);

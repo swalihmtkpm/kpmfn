@@ -114,7 +114,7 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
     }
 
     try {
-      const { data: isValid, error } = await supabase.rpc('verify_student_secret_code', {
+      const { data: isValid, error } = await (supabase.rpc as any)('verify_student_secret_code', {
         _spr_id: selectedStudent.spr_id,
         _code: enteredSecretCode.trim(),
       });
@@ -144,7 +144,7 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
     if (!selectedStudent) return;
 
     try {
-      const { data: isValid, error } = await supabase.rpc('verify_student_recovery', {
+      const { data: isValid, error } = await (supabase.rpc as any)('verify_student_recovery', {
         _spr_id: selectedStudent.spr_id,
         _father: recoveryFather.trim(),
         _house: recoveryHouse.trim(),
@@ -201,7 +201,7 @@ export default function BorrowRequestModal({ bookId, bookTitle = '', isMissed = 
     }
 
     try {
-      await supabase.rpc('reset_student_secret_code', {
+      await (supabase.rpc as any)('reset_student_secret_code', {
         _spr_id: selectedStudent.spr_id,
         _father: recoveryFather.trim(),
         _house: recoveryHouse.trim(),
