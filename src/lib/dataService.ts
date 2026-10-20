@@ -77,10 +77,22 @@ export type BorrowRecord = {
   book_title: string;
   student_id?: string;
   borrower_name: string;
+  student_name?: string;
+  student_spr_id?: string;
   borrowed_at: string;
+  borrow_date?: string;
   due_at: string;
   returned_at?: string | null;
+  return_date?: string | null;
   status: 'active' | 'returned' | 'overdue';
+};
+
+export type OverdueRecord = BorrowRecord & {
+  days_overdue: number;
+  expected_return_date: string;
+  student_name: string;
+  student_spr_id?: string;
+  borrow_date: string;
 };
 
 export type Review = {
@@ -100,7 +112,7 @@ export type RatingRecord = {
   created_at: string;
 };
 
-export type ReadingStatus = 'full' | 'custom' | 'not_read';
+export type ReadingStatus = 'full' | 'custom' | 'not_read' | 'full_read' | 'custom_pages';
 
 export type ReadingRecord = {
   id: string;
@@ -111,16 +123,20 @@ export type ReadingRecord = {
   book_id: string;
   book_title: string;
   book_pages: number;
+  book_code?: string;
   reading_status: ReadingStatus;
   pages_read: number;
   points_awarded: number;
   awarded_at: string;
+  valuation_rate_per_10_pages?: number;
+  return_date?: string;
   notes?: string;
 };
 
 export type LeaderboardSettings = {
   points_per_10_pages: number; // e.g. 4 points per 10 pages read
   is_hidden_from_public: boolean;
+  last_updated?: string;
 };
 
 export type LeaderboardEntry = {
@@ -128,17 +144,33 @@ export type LeaderboardEntry = {
   student_id?: string;
   student_name: string;
   student_spr_id?: string;
+  student_department?: string;
+  student_batch?: string;
   total_points: number;
   books_completed: number;
+  books_read_count?: number;
   total_pages_read: number;
   readings: ReadingRecord[];
+  reading_records?: ReadingRecord[];
 };
 
 export type LeaderboardSnapshot = {
   id: string;
   name: string;
+  title: string;
   created_at: string;
+  snapshot_date: string;
   entries: LeaderboardEntry[];
+};
+
+export type Category = {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  slug?: string;
+  icon?: string;
+  color?: string;
+  sort_order: number;
 };
 
 /**
@@ -194,13 +226,13 @@ export const DEFAULT_READING_RECORDS: ReadingRecord[] = [];
 export const DEFAULT_REVIEWS: Review[] = [];
 
 // Seed Categories
-export const DEFAULT_CATEGORIES = [
-  { id: 'cat-1', name_ar: 'الحديث الشريف وعلومه', name_en: 'Hadith & Its Sciences', icon: 'BookOpen', sort_order: 1 },
-  { id: 'cat-2', name_ar: 'الفقه الشافعي وأصوله', name_en: 'Shafi’i Fiqh & Usul', icon: 'Scale', sort_order: 2 },
-  { id: 'cat-3', name_ar: 'التفسير وعلوم القرآن', name_en: 'Tafsir & Quranic Sciences', icon: 'Sparkles', sort_order: 3 },
-  { id: 'cat-4', name_ar: 'السيرة النبوية والتاريخ', name_en: 'Prophetic Biography & History', icon: 'Compass', sort_order: 4 },
-  { id: 'cat-5', name_ar: 'العقيدة والتصوف', name_en: 'Aqeedah & Tasawwuf', icon: 'Heart', sort_order: 5 },
-  { id: 'cat-6', name_ar: 'اللغة العربية وآدابها', name_en: 'Arabic Language & Literature', icon: 'Feather', sort_order: 6 },
+export const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-1', name_ar: 'الحديث الشريف وعلومه', name_en: 'Hadith & Its Sciences', icon: 'BookOpen', color: '#10b981', sort_order: 1 },
+  { id: 'cat-2', name_ar: 'الفقه الشافعي وأصوله', name_en: 'Shafi’i Fiqh & Usul', icon: 'Scale', color: '#6366f1', sort_order: 2 },
+  { id: 'cat-3', name_ar: 'التفسير وعلوم القرآن', name_en: 'Tafsir & Quranic Sciences', icon: 'Sparkles', color: '#f59e0b', sort_order: 3 },
+  { id: 'cat-4', name_ar: 'السيرة النبوية والتاريخ', name_en: 'Prophetic Biography & History', icon: 'Compass', color: '#8b5cf6', sort_order: 4 },
+  { id: 'cat-5', name_ar: 'العقيدة والتصوف', name_en: 'Aqeedah & Tasawwuf', icon: 'Heart', color: '#ec4899', sort_order: 5 },
+  { id: 'cat-6', name_ar: 'اللغة العربية وآدابها', name_en: 'Arabic Language & Literature', icon: 'Feather', color: '#06b6d4', sort_order: 6 },
 ];
 
 // Clean defaults: 0 mock students
@@ -296,21 +328,80 @@ class DataService {
       for (const k of legacyKeys) {
         try { localStorage.removeItem(k); } catch {}
       }
-
       this.syncFromSupabase().catch(() => {});
+
+      // Connect to Supabase Realtime database changes
+      try {
+        supabase
+          .channel('public:realtime_library')
+          .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+            this.syncFromSupabase().catch(() => {});
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime channel notice:', e);
+      }
 
       // Auto-sync on window focus
       window.addEventListener('focus', () => {
         this.syncFromSupabase().catch(() => {});
       });
 
-      // Background periodic sync every 25 seconds
+      // Background periodic sync every 20 seconds
       setInterval(() => {
         if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
           this.syncFromSupabase().catch(() => {});
         }
-      }, 25000);
+      }, 20000);
     }
+  }
+
+  async checkCloudHealth(): Promise<{
+    ready: boolean;
+    booksAccessible: boolean;
+    studentsAccessible: boolean;
+    settingsWritable: boolean;
+    reason?: string;
+  }> {
+    let booksAccessible = false;
+    let studentsAccessible = false;
+    let settingsWritable = false;
+
+    try {
+      const { error: bErr } = await supabase.from('books').select('id').limit(1);
+      booksAccessible = !bErr;
+    } catch {}
+
+    try {
+      const { error: sErr } = await supabase.from('students').select('id').limit(1);
+      studentsAccessible = !sErr;
+    } catch {}
+
+    try {
+      const { error: wErr } = await supabase.from('library_settings').upsert(
+        { key: 'cloud_health_ping', value: { ping: Date.now() } },
+        { onConflict: 'key' }
+      );
+      settingsWritable = !wErr;
+    } catch {}
+
+    const ready = booksAccessible && studentsAccessible && settingsWritable;
+    let reason: string | undefined;
+    if (!ready) {
+      if (!studentsAccessible) {
+        reason = 'Missing tables (public.students / reading_records). SQL migration required.';
+      } else if (!settingsWritable) {
+        reason = 'RLS policy blocking writes. SQL migration required.';
+      }
+    }
+
+    return {
+      ready,
+      booksAccessible,
+      studentsAccessible,
+      settingsWritable,
+      reason,
+    };
   }
 
   clearAllData(): void {
@@ -338,7 +429,7 @@ class DataService {
         await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('borrow_requests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('borrow_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase.from('reading_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await (supabase as any).from('reading_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       } catch (e) {
         console.warn('clearAllData Supabase delete notice:', e);
@@ -525,7 +616,7 @@ class DataService {
 
       // 9. Fetch remote reading_records
       try {
-        const { data: remoteReadings } = await supabase.from('reading_records').select('*');
+        const { data: remoteReadings } = await (supabase as any).from('reading_records').select('*');
         if (remoteReadings && remoteReadings.length > 0) {
           this.setItem(STORAGE_KEYS.READING_RECORDS, remoteReadings);
         }
@@ -533,7 +624,7 @@ class DataService {
 
       // 10. Fetch remote leaderboard_snapshots
       try {
-        const { data: remoteSnaps } = await supabase.from('leaderboard_snapshots').select('*');
+        const { data: remoteSnaps } = await (supabase as any).from('leaderboard_snapshots').select('*');
         if (remoteSnaps && remoteSnaps.length > 0) {
           this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, remoteSnaps);
         }
@@ -547,8 +638,8 @@ class DataService {
   }
 
   // Categories
-  getCategories() {
-    return this.getItem(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+  getCategories(): Category[] {
+    return this.getItem<Category[]>(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
   }
 
   getCategoryBookCounts(): Record<string, number> {
@@ -940,6 +1031,30 @@ class DataService {
     list.unshift(newReq);
     this.setItem(STORAGE_KEYS.REQUESTS, list);
     this.syncToCloud('library_requests_v3', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        await (supabase as any).from('borrow_requests').insert({
+          id: UUID_REGEX.test(newReq.id) ? newReq.id : undefined,
+          book_id: UUID_REGEX.test(newReq.book_id) ? newReq.book_id : undefined,
+          student_id: newReq.student_id || newReq.requester_spr_id,
+          requester_name: newReq.requester_name,
+          requester_type: newReq.requester_type,
+          requester_class: newReq.requester_class,
+          requester_spr_id: newReq.requester_spr_id,
+          requester_phone: newReq.requester_phone,
+          requester_place: newReq.requester_place,
+          requester_address: newReq.requester_address,
+          days_requested: newReq.days_requested,
+          expected_return_date: newReq.expected_return_date,
+          status: newReq.status,
+        });
+      } catch (e) {
+        console.warn('syncBorrowRequestDirect notice:', e);
+      }
+    })();
+
     return newReq;
   }
 
@@ -952,10 +1067,24 @@ class DataService {
       this.setItem(STORAGE_KEYS.REQUESTS, list);
       this.syncToCloud('library_requests_v3', list);
 
+      (async () => {
+        try {
+          const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (UUID_REGEX.test(id)) {
+            await (supabase as any).from('borrow_requests').update({
+              status,
+              returned_at: status === 'returned' ? new Date().toISOString() : null,
+            }).eq('id', id);
+          }
+        } catch (e) {
+          console.warn('updateBorrowRequestDirect notice:', e);
+        }
+      })();
+
       // If approved, create active borrow record
       if (status === 'approved') {
         const records = this.getBorrowRecords();
-        records.unshift({
+        const newRecord: BorrowRecord = {
           id: `rec-${Date.now()}`,
           book_id: item.book_id,
           book_title: item.book_title,
@@ -964,9 +1093,28 @@ class DataService {
           borrowed_at: new Date().toISOString(),
           due_at: new Date(Date.now() + (item.days_requested || 7) * 86400000).toISOString(),
           status: 'active',
-        });
+        };
+        records.unshift(newRecord);
         this.setItem(STORAGE_KEYS.RECORDS, records);
         this.syncToCloud('library_records_v3', records);
+
+        (async () => {
+          try {
+            const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            await (supabase as any).from('borrow_records').insert({
+              id: UUID_REGEX.test(newRecord.id) ? newRecord.id : undefined,
+              book_id: UUID_REGEX.test(newRecord.book_id) ? newRecord.book_id : undefined,
+              student_id: newRecord.student_id,
+              borrower_name: newRecord.borrower_name,
+              book_title: newRecord.book_title,
+              borrowed_at: newRecord.borrowed_at,
+              due_at: newRecord.due_at,
+              status: 'active',
+            });
+          } catch (e) {
+            console.warn('syncBorrowRecordDirect notice:', e);
+          }
+        })();
       } else if (status === 'returned') {
         const records = this.getBorrowRecords();
         const activeRec = records.find((r) => r.book_id === item.book_id && r.borrower_name === item.requester_name && r.status === 'active');
@@ -975,13 +1123,41 @@ class DataService {
           activeRec.returned_at = new Date().toISOString();
           this.setItem(STORAGE_KEYS.RECORDS, records);
           this.syncToCloud('library_records_v3', records);
+
+          (async () => {
+            try {
+              const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              if (UUID_REGEX.test(activeRec.id)) {
+                await supabase.from('borrow_records').update({
+                  status: 'returned',
+                  returned_at: activeRec.returned_at,
+                }).eq('id', activeRec.id);
+              }
+            } catch (e) {
+              console.warn('updateBorrowRecordDirect notice:', e);
+            }
+          })();
         }
       }
     }
   }
 
   getBorrowRecords(): BorrowRecord[] {
-    return this.getItem(STORAGE_KEYS.RECORDS, DEFAULT_RECORDS);
+    const records = this.getItem<BorrowRecord[]>(STORAGE_KEYS.RECORDS, DEFAULT_RECORDS);
+    const students = this.getStudents();
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+    const studentNameMap = new Map(students.map((s) => [s.name, s]));
+
+    return records.map((r) => {
+      const student = (r.student_id ? studentMap.get(r.student_id) : undefined) || (r.borrower_name ? studentNameMap.get(r.borrower_name) : undefined);
+      return {
+        ...r,
+        student_name: r.student_name || r.borrower_name || student?.name || '',
+        student_spr_id: r.student_spr_id || student?.spr_id,
+        borrow_date: r.borrow_date || r.borrowed_at,
+        return_date: r.return_date !== undefined ? r.return_date : r.returned_at,
+      };
+    });
   }
 
   updateRecordDueDate(id: string, dueAt: string): boolean {
@@ -1195,14 +1371,15 @@ class DataService {
   }
 
   // Category Management CRUD
-  addCategory(cat: { name_ar: string; name_en?: string; slug?: string; icon?: string }) {
+  addCategory(cat: { name_ar: string; name_en?: string; slug?: string; icon?: string; color?: string }): Category {
     const list = this.getCategories();
-    const newCat = {
+    const newCat: Category = {
       id: `cat-${Date.now()}`,
       name_ar: cat.name_ar.trim(),
       name_en: cat.name_en?.trim() || cat.name_ar.trim(),
       slug: cat.slug?.trim() || `cat-${Date.now()}`,
       icon: cat.icon || 'BookOpen',
+      color: cat.color || '#6366f1',
       sort_order: list.length + 1,
     };
     list.push(newCat);
@@ -1225,11 +1402,11 @@ class DataService {
     return newCat;
   }
 
-  updateCategory(id: string, cat: Partial<{ name_ar: string; name_en: string; slug: string; icon: string }>) {
+  updateCategory(id: string, cat: Partial<{ name_ar: string; name_en: string; slug: string; icon: string; color: string }>): Category | null {
     const list = this.getCategories();
     const idx = list.findIndex((c) => c.id === id);
     if (idx !== -1) {
-      const updated = { ...list[idx], ...cat };
+      const updated: Category = { ...list[idx], ...cat };
       list[idx] = updated;
       this.setItem(STORAGE_KEYS.CATEGORIES, list);
       this.syncToCloud('library_categories_v3', list);
@@ -1300,25 +1477,31 @@ class DataService {
     student_spr_id?: string;
     book_id: string;
     book_title: string;
-    book_pages: number;
+    book_pages?: number;
+    book_total_pages?: number;
+    book_code?: string;
     reading_status: ReadingStatus;
     pages_read?: number;
+    points_awarded?: number;
+    valuation_rate_per_10_pages?: number;
+    return_date?: string;
     notes?: string;
   }): ReadingRecord {
     const list = this.getReadingRecords();
     const settings = this.getLeaderboardSettings();
     const ratio = settings.points_per_10_pages / 10;
+    const totalBookPages = record.book_pages || record.book_total_pages || 0;
 
     let pages = 0;
-    if (record.reading_status === 'full') {
-      pages = record.book_pages || 0;
-    } else if (record.reading_status === 'custom') {
+    if (record.reading_status === 'full' || record.reading_status === 'full_read') {
+      pages = totalBookPages;
+    } else if (record.reading_status === 'custom' || record.reading_status === 'custom_pages') {
       pages = Math.max(0, record.pages_read || 0);
     } else {
       pages = 0;
     }
 
-    const points = Math.round(pages * ratio);
+    const points = record.points_awarded !== undefined ? record.points_awarded : Math.round(pages * ratio);
 
     // Check if an entry already exists for this borrow record or book+student combo
     const existingIdx = record.borrow_record_id
@@ -1330,6 +1513,7 @@ class DataService {
       savedRecord = {
         ...list[existingIdx],
         ...record,
+        book_pages: totalBookPages,
         pages_read: pages,
         points_awarded: points,
         awarded_at: new Date().toISOString(),
@@ -1339,6 +1523,7 @@ class DataService {
       savedRecord = {
         id: `read-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         ...record,
+        book_pages: totalBookPages,
         pages_read: pages,
         points_awarded: points,
         awarded_at: new Date().toISOString(),
@@ -1348,6 +1533,29 @@ class DataService {
 
     this.setItem(STORAGE_KEYS.READING_RECORDS, list);
     this.syncToCloud('library_reading_records_v3', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        await (supabase as any).from('reading_records').upsert({
+          id: UUID_REGEX.test(savedRecord.id) ? savedRecord.id : undefined,
+          student_id: savedRecord.student_id || savedRecord.student_spr_id || savedRecord.student_name,
+          student_name: savedRecord.student_name,
+          student_spr_id: savedRecord.student_spr_id || null,
+          book_id: savedRecord.book_id,
+          book_title: savedRecord.book_title,
+          book_pages: savedRecord.book_pages,
+          reading_status: savedRecord.reading_status,
+          pages_read: savedRecord.pages_read,
+          points_awarded: savedRecord.points_awarded,
+          awarded_at: savedRecord.awarded_at,
+          notes: savedRecord.notes || null,
+        });
+      } catch (e) {
+        console.warn('syncReadingRecordDirect notice:', e);
+      }
+    })();
+
     return savedRecord;
   }
 
@@ -1355,6 +1563,17 @@ class DataService {
     const list = this.getReadingRecords().filter((r) => r.id !== id);
     this.setItem(STORAGE_KEYS.READING_RECORDS, list);
     this.syncToCloud('library_reading_records_v3', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await (supabase as any).from('reading_records').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn('deleteReadingRecord notice:', e);
+      }
+    })();
   }
 
   recalculateAllReadingPoints(): void {
@@ -1364,7 +1583,7 @@ class DataService {
 
     const updated = list.map((r) => {
       let pages = r.pages_read;
-      if (r.reading_status === 'full') {
+      if (r.reading_status === 'full' || r.reading_status === 'full_read') {
         pages = r.book_pages;
       } else if (r.reading_status === 'not_read') {
         pages = 0;
@@ -1389,17 +1608,20 @@ class DataService {
 
     const readings = this.getReadingRecords();
     const students = this.getStudents();
-    const studentMap = new Map(students.map((s) => [s.name, s]));
-    students.forEach((s) => {
+    const studentMap = new Map<string, Student>();
+    for (const s of students) {
       if (s.id) studentMap.set(s.id, s);
+      if (s.name) studentMap.set(s.name, s);
       if (s.spr_id) studentMap.set(s.spr_id, s);
-    });
+    }
 
     // Group by student identifier (SPR ID or name)
     const map = new Map<string, {
       student_id?: string;
       student_name: string;
       student_spr_id?: string;
+      student_department?: string;
+      student_batch?: string;
       total_points: number;
       books_completed: number;
       total_pages_read: number;
@@ -1407,7 +1629,10 @@ class DataService {
     }>();
 
     for (const r of readings) {
-      const matched = studentMap.get(r.student_name) || (r.student_id ? studentMap.get(r.student_id) : undefined);
+      const matched =
+        (r.student_id ? studentMap.get(r.student_id) : undefined) ||
+        (r.student_spr_id ? studentMap.get(r.student_spr_id) : undefined) ||
+        studentMap.get(r.student_name);
       const spr = r.student_spr_id || matched?.spr_id;
       const key = spr || r.student_name;
 
@@ -1416,6 +1641,8 @@ class DataService {
           student_id: r.student_id || matched?.id,
           student_name: r.student_name,
           student_spr_id: spr,
+          student_department: matched?.klass || '',
+          student_batch: matched?.klass || '',
           total_points: 0,
           books_completed: 0,
           total_pages_read: 0,
@@ -1425,14 +1652,18 @@ class DataService {
 
       const item = map.get(key)!;
       item.total_points += r.points_awarded || 0;
-      if (r.reading_status === 'full' || (r.pages_read >= r.book_pages && r.book_pages > 0)) {
+      if (
+        r.reading_status === 'full' ||
+        r.reading_status === 'full_read' ||
+        (r.pages_read >= r.book_pages && r.book_pages > 0)
+      ) {
         item.books_completed += 1;
       }
       item.total_pages_read += r.pages_read || 0;
       item.readings.push(r);
     }
 
-    const entries = Array.from(map.values())
+    const entries: LeaderboardEntry[] = Array.from(map.values())
       .filter((e) => e.total_points > 0 || e.total_pages_read > 0)
       .sort((a, b) => {
         if (b.total_points !== a.total_points) return b.total_points - a.total_points;
@@ -1442,27 +1673,61 @@ class DataService {
       .map((e, idx) => ({
         rank: idx + 1,
         ...e,
+        books_read_count: e.books_completed,
+        reading_records: e.readings,
       }));
 
     return entries;
   }
 
   getLeaderboardSnapshots(): LeaderboardSnapshot[] {
-    return this.getItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, []);
+    const list = this.getItem<any[]>(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, []);
+    return list.map((s) => ({
+      ...s,
+      name: s.name || s.title || `Snapshot ${s.id}`,
+      title: s.title || s.name || `Snapshot ${s.id}`,
+      created_at: s.created_at || s.snapshot_date || new Date().toISOString(),
+      snapshot_date: s.snapshot_date || s.created_at || new Date().toISOString(),
+      entries: (s.entries || []).map((e: any, idx: number) => ({
+        ...e,
+        rank: e.rank || idx + 1,
+        books_completed: e.books_completed ?? e.books_read_count ?? 0,
+        books_read_count: e.books_read_count ?? e.books_completed ?? 0,
+        readings: e.readings || e.reading_records || [],
+        reading_records: e.reading_records || e.readings || [],
+      })),
+    }));
   }
 
   createLeaderboardSnapshot(name: string): LeaderboardSnapshot {
     const list = this.getLeaderboardSnapshots();
     const liveEntries = this.getLeaderboard();
+    const title = name.trim() || `تحدي القراءة - ${new Date().toLocaleDateString('ar-SA')}`;
     const snapshot: LeaderboardSnapshot = {
       id: `snap-${Date.now()}`,
-      name: name.trim() || `تحدي القراءة - ${new Date().toLocaleDateString('ar-SA')}`,
+      name: title,
+      title: title,
       created_at: new Date().toISOString(),
+      snapshot_date: new Date().toISOString(),
       entries: liveEntries,
     };
     list.unshift(snapshot);
     this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
     this.syncToCloud('library_leaderboard_snapshots_v3', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        await (supabase as any).from('leaderboard_snapshots').insert({
+          id: UUID_REGEX.test(snapshot.id) ? snapshot.id : undefined,
+          name: snapshot.name,
+          entries: snapshot.entries,
+        });
+      } catch (e) {
+        console.warn('syncSnapshotDirect notice:', e);
+      }
+    })();
+
     return snapshot;
   }
 
@@ -1470,26 +1735,51 @@ class DataService {
     const list = this.getLeaderboardSnapshots().filter((s) => s.id !== id);
     this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, list);
     this.syncToCloud('library_leaderboard_snapshots_v3', list);
+
+    (async () => {
+      try {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id)) {
+          await (supabase as any).from('leaderboard_snapshots').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn('deleteSnapshot notice:', e);
+      }
+    })();
   }
 
   // Overdue Books helpers
-  getOverdueRecords(): (BorrowRecord & { days_overdue: number })[] {
+  getOverdueRecords(): OverdueRecord[] {
     const now = new Date();
     const records = this.getBorrowRecords();
+    const students = this.getStudents();
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+    const studentNameMap = new Map(students.map((s) => [s.name, s]));
+
     return records
       .filter((r) => r.status === 'active' && r.due_at && new Date(r.due_at).getTime() < now.getTime())
       .map((r) => {
         const diffMs = now.getTime() - new Date(r.due_at).getTime();
         const days = Math.max(1, Math.floor(diffMs / 86400000));
+        const student = (r.student_id ? studentMap.get(r.student_id) : undefined) || (r.borrower_name ? studentNameMap.get(r.borrower_name) : undefined);
         return {
           ...r,
+          student_name: r.student_name || r.borrower_name || student?.name || '',
+          student_spr_id: r.student_spr_id || student?.spr_id,
+          borrow_date: r.borrow_date || r.borrowed_at,
+          expected_return_date: r.due_at,
           days_overdue: days,
         };
       })
       .sort((a, b) => b.days_overdue - a.days_overdue);
   }
 
-  returnOverdueBook(recordId: string, readingStatus: ReadingStatus, customPages?: number): boolean {
+  returnOverdueBook(
+    recordId: string,
+    readingStatus: ReadingStatus,
+    customPages?: number,
+    notes?: string
+  ): boolean {
     const records = this.getBorrowRecords();
     const record = records.find((r) => r.id === recordId);
     if (!record) return false;
@@ -1512,9 +1802,9 @@ class DataService {
     const book = this.getBookById(record.book_id);
     const totalPages = book?.pages || 100;
     let pagesRead = 0;
-    if (readingStatus === 'full') {
+    if (readingStatus === 'full' || readingStatus === 'full_read') {
       pagesRead = totalPages;
-    } else if (readingStatus === 'custom') {
+    } else if (readingStatus === 'custom' || readingStatus === 'custom_pages') {
       pagesRead = customPages && customPages > 0 ? customPages : 0;
     }
 
@@ -1530,6 +1820,7 @@ class DataService {
       book_pages: totalPages,
       reading_status: readingStatus,
       pages_read: pagesRead,
+      notes: notes,
     });
 
     return true;

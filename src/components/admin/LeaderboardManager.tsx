@@ -145,7 +145,7 @@ export default function LeaderboardManager() {
         student_spr_id: evaluatingRecord.student_spr_id,
         book_id: evaluatingRecord.book_id,
         book_title: evaluatingRecord.book_title,
-        book_code: book?.code,
+        book_code: book?.book_code,
         reading_status: selectedStatus,
         book_total_pages: totalBookPages,
         pages_read: pagesToCredit,

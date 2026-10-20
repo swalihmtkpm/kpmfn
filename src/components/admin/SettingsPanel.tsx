@@ -34,6 +34,19 @@ export default function SettingsPanel() {
   const [info, setInfo] = useState<Info>({});
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [cloudHealth, setCloudHealth] = useState<{
+    ready: boolean;
+    booksAccessible: boolean;
+    studentsAccessible: boolean;
+    settingsWritable: boolean;
+    reason?: string;
+  } | null>(null);
+
+  const checkHealth = async () => {
+    const h = await dataService.checkCloudHealth();
+    setCloudHealth(h);
+  };
+
   const [stats, setStats] = useState(() => ({
     books: dataService.getBooks().length,
     students: dataService.getStudents().length,
@@ -53,6 +66,7 @@ export default function SettingsPanel() {
   };
 
   useEffect(() => {
+    checkHealth();
     window.addEventListener('imthiyaz_data_updated', refreshStats);
     return () => window.removeEventListener('imthiyaz_data_updated', refreshStats);
   }, []);
@@ -61,6 +75,7 @@ export default function SettingsPanel() {
     setSyncing(true);
     try {
       await dataService.syncFromSupabase();
+      await checkHealth();
       refreshStats();
       toast.success(lang === 'ar' ? 'تمت المزامنة السحابية بنجاح' : 'Cloud sync completed successfully.');
     } catch (e: any) {
@@ -208,15 +223,131 @@ export default function SettingsPanel() {
       </Section>
 
 
+      {/* Permanent Cloud Storage Architecture Section */}
+      <Section icon={Cloud} title={lang === 'ar' ? 'قاعدة البيانات السحابية الدائمة (Supabase Cloud)' : 'Permanent Cloud Database (Supabase Cloud)'} className="md:col-span-2">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border bg-muted/30">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">{lang === 'ar' ? 'حالة التخزين السحابي الدائم:' : 'Permanent Cloud Storage Status:'}</span>
+                {cloudHealth === null ? (
+                  <span className="text-xs text-muted-foreground animate-pulse">{lang === 'ar' ? 'جارٍ الفحص...' : 'Checking status...'}</span>
+                ) : cloudHealth.ready ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {lang === 'ar' ? 'متصل وحفظ سحابي دائم نشط' : 'Connected — Permanent Cloud Active'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {lang === 'ar' ? 'يتطلب تشغيل كود الإعداد بالسحابة' : 'Cloud Setup Migration Required'}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {cloudHealth?.ready
+                  ? (lang === 'ar'
+                    ? 'كافة الكتب والطلاب وطلبات الاستعارة ونقاط القراءة يتم حفظها دائماً في قاعدة البيانات السحابية المركزية لجميع الأجهزة والمتصفحات.'
+                    : 'All books, students, borrow records, and leaderboard points are permanently stored in the centralized cloud database across all devices.')
+                  : (lang === 'ar'
+                    ? 'لتفعيل الحفظ السحابي الدائم بدلاً من التخزين المؤقت، يلزم تنفيذ أمر SQL لإنشاء الجداول وإلغاء قيود الأمان (RLS) في Supabase.'
+                    : 'To enable permanent cloud storage across all devices instead of local cache, the database tables and Row-Level Security policies need to be initialized in Supabase.')}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncCloud}
+                disabled={syncing}
+                className="gap-1.5 flex-1 sm:flex-initial h-9"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                <span>{syncing ? (lang === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...') : (lang === 'ar' ? 'مزامنة السحابة الآن' : 'Sync Cloud Now')}</span>
+              </Button>
+            </div>
+          </div>
+
+          {!cloudHealth?.ready && (
+            <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{lang === 'ar' ? 'خطوة سريعة لتفعيل التخزين الدائم (1 دقيقة):' : 'One Quick Step to Unlock Permanent Cloud Storage (1 min):'}</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {lang === 'ar'
+                  ? 'يقوم المشروع بالربط السحابي مع Supabase، لكن قواعد الحماية (RLS) وجداول الطلاب ونقاط القراءة تتطلب تنفيذ كود التهيئة مرة واحدة. انسخ الكود بنقرة واحدة والصقه في SQL Editor داخل Supabase (أو اطلب من Lovable تشغيلها):'
+                  : 'The app connects to your cloud database, but Row-Level Security policies and tables need one-time setup. Copy the SQL script below and paste it in Supabase SQL Editor (or ask Lovable to run it):'}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleCopyMigrationSql}
+                  className="gap-1.5 h-8 text-xs font-semibold"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'نسخ كود SQL للتهيئة الدائمة' : 'Copy Permanent Cloud SQL Script'}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={checkHealth}
+                  className="gap-1.5 h-8 text-xs font-semibold"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'إعادة فحص الاتصال' : 'Re-check Connection'}</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Current Counts Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center pt-1">
+            <div className="p-2.5 rounded-lg border bg-card">
+              <div className="text-base font-bold text-primary">{stats.books}</div>
+              <div className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'الكتب' : 'Books'}</div>
+            </div>
+            <div className="p-2.5 rounded-lg border bg-card">
+              <div className="text-base font-bold text-primary">{stats.students}</div>
+              <div className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'الطلاب' : 'Students'}</div>
+            </div>
+            <div className="p-2.5 rounded-lg border bg-card">
+              <div className="text-base font-bold text-primary">{stats.requests}</div>
+              <div className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'الطلبات' : 'Requests'}</div>
+            </div>
+            <div className="p-2.5 rounded-lg border bg-card">
+              <div className="text-base font-bold text-primary">{stats.records}</div>
+              <div className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'السجلات' : 'Records'}</div>
+            </div>
+            <div className="p-2.5 rounded-lg border bg-card">
+              <div className="text-base font-bold text-primary">{stats.readings}</div>
+              <div className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'نقاط القراءة' : 'Readings'}</div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
       <Section icon={Database} title={t('backupRestore')} className="md:col-span-2">
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={doBackup} variant="outline" className="gap-1.5"><Download className="w-4 h-4" />{t('backup')}</Button>
-          <label className="inline-flex">
-            <input type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) doRestore(f); e.target.value = ''; }} />
-            <span className="inline-flex items-center gap-1.5 px-4 h-10 rounded-md border bg-background hover:bg-accent text-sm font-medium cursor-pointer">
-              <Upload className="w-4 h-4" />{t('restore')}
-            </span>
-          </label>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Button onClick={doBackup} variant="outline" className="gap-1.5"><Download className="w-4 h-4" />{t('backup')}</Button>
+            <label className="inline-flex">
+              <input type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) doRestore(f); e.target.value = ''; }} />
+              <span className="inline-flex items-center gap-1.5 px-4 h-10 rounded-md border bg-background hover:bg-accent text-sm font-medium cursor-pointer">
+                <Upload className="w-4 h-4" />{t('restore')}
+              </span>
+            </label>
+            <Button
+              variant="destructive"
+              onClick={handleClearAllData}
+              className="gap-1.5 ms-auto"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{lang === 'ar' ? 'تصفير كافة البيانات والبدء بسجل نظيف' : 'Clear & Reset All Data'}</span>
+            </Button>
+          </div>
         </div>
       </Section>
 

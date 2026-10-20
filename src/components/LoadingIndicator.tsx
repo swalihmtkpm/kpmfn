@@ -7,17 +7,20 @@ type LoadingProps = {
   size?: number;
   className?: string;
   text?: string;
+  label?: string;
 };
 
 /**
  * Standard rotating library logo rosette (continuous smooth rotation).
  */
-export function BrandSpinner({ size = 56, className = '' }: LoadingProps) {
+export function BrandSpinner({ size = 56, className = '', text, label }: LoadingProps) {
+  const displayText = text || label;
   return (
-    <div
-      className={`relative inline-flex items-center justify-center select-none ${className}`}
-      style={{ width: size + 16, height: size + 16 }}
-    >
+    <div className={`relative inline-flex flex-col items-center justify-center select-none ${className}`}>
+      <div
+        className="relative inline-flex items-center justify-center"
+        style={{ width: size + 16, height: size + 16 }}
+      >
       {/* Subtle pulsing outer ring */}
       <div
         className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping opacity-25"
@@ -33,6 +36,12 @@ export function BrandSpinner({ size = 56, className = '' }: LoadingProps) {
         style={{ width: size, height: size, animationDuration: '2.5s' }}
         draggable={false}
       />
+    </div>
+      {displayText && (
+        <p className="mt-3 text-xs font-bold text-foreground tracking-wide text-center">
+          {displayText}
+        </p>
+      )}
     </div>
   );
 }

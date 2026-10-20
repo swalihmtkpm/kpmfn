@@ -36,8 +36,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Leaderboard() {
   const { t, isRTL } = useLanguage();
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === 'admin' || dataService.isAdminAuthenticated();
+  const { isAdmin: isAuthAdmin } = useAuth();
+  const isAdmin = isAuthAdmin || dataService.isAdminAuthenticated();
 
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<LeaderboardSettings>({
