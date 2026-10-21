@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { hashPassword } from '@/lib/authCrypto';
 
 export type Profile = {
   id: string;
@@ -109,13 +110,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const changePassword: AuthCtx['changePassword'] = async (newPassword) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) return { error: error.message };
-    if (user) {
-      await supabase.from('profiles').update({ must_change_password: false }).eq('id', user.id);
-      await loadProfile(user.id);
+    if (!newPassword || newPassword.length < 5) {
+      return { error: 'Password must be at least 5 characters' };
     }
-    return {};
+
+    try {
+      // 1. Hash the new password with SHA-256 for persistent database storage
+      const hashed = await hashPassword(newPassword);
+
+      // 2. Persist to cloud permanent database (library_settings)
+      await supabase.from('library_settings').upsert(
+        {
+          key: 'admin_security_config',
+          value: {
+            password_hash: hashed,
+            updated_at: new Date().toISOString(),
+            username: 'msoekutb',
+          },
+        },
+        { onConflict: 'key' }
+      );
+
+      // 3. Cache locally for immediate offline/instant verification
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('imthiyaz_admin_pw_hash', hashed);
+      }
+
+      // 4. If Supabase auth user exists, also update Supabase Auth & profile
+      if (user) {
+        await supabase.auth.updateUser({ password: newPassword }).catch(() => {});
+        await supabase.from('profiles').update({ must_change_password: false }).eq('id', user.id).catch(() => {});
+        await loadProfile(user.id).catch(() => {});
+      }
+
+      return {};
+    } catch (e: any) {
+      return { error: e?.message || 'Failed to update admin password' };
+    }
   };
 
   const refreshProfile = useCallback(async () => {

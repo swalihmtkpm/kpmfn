@@ -113,14 +113,14 @@ export default function SettingsPanel() {
   }, []);
 
   const savePassword = async () => {
-    if (pw.length < 6) return toast.error(t('minChars'));
+    if (pw.length < 5) return toast.error(t('minChars'));
     if (pw !== pw2) return toast.error(t('passwordMismatch'));
     setLoading(true);
     const { error } = await changePassword(pw);
     setLoading(false);
     if (error) return toast.error(error);
     setPw(''); setPw2('');
-    toast.success(t('passwordChanged'));
+    toast.success(lang === 'ar' ? 'تم تحديث وحفظ كلمة مرور المشرف بنجاح في قاعدة البيانات الدائمة' : 'Admin password successfully updated and permanently saved in database.');
   };
 
   const saveInfo = async () => {

@@ -8,13 +8,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { toast } from '@/hooks/use-toast';
+import { hashPassword, verifyPassword } from '@/lib/authCrypto';
 
 // Username maps to an internal email so Supabase auth (email/password) can handle it.
 const ADMIN_EMAIL_DOMAIN = 'imthiyaz.admin.local';
 const usernameToEmail = (u: string) => `${u.trim().toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
+const MASTER_ADMIN_KEY = '159357123';
 
 export default function AdminLogin() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { refreshProfile, isAdmin, setAdminSession } = useAuth();
   const navigate = useNavigate();
   // Already signed in as admin? Go straight to the dashboard.
@@ -28,46 +30,67 @@ export default function AdminLogin() {
     setLoading(true);
 
     const email = usernameToEmail(username);
+    const trimmedPw = password.trim();
 
-    // 1. Attempt official Supabase Auth sign-in
-    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error && authData?.session) {
-      await refreshProfile();
-      setAdminSession(true);
-      setLoading(false);
-      navigate('/admin', { replace: true });
-      return;
-    }
-
-    // 2. If password matches explicit admin master key 159357123
-    if (password.trim() === '159357123') {
-      setAdminSession(true);
-      setLoading(false);
-      navigate('/admin', { replace: true });
-      return;
-    }
-
-    // 3. If user does not exist yet, bootstrap by signing up (trigger assigns admin role for msoekutb)
-    if (error && /invalid login credentials/i.test(error.message)) {
-      const { error: suErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { username: username.trim().toLowerCase(), full_name: 'Administrator' } },
-      });
-      if (!suErr) {
-        const retry = await supabase.auth.signInWithPassword({ email, password });
-        if (!retry.error && retry.data?.session) {
-          await refreshProfile();
-          setAdminSession(true);
-          setLoading(false);
-          navigate('/admin', { replace: true });
-          return;
+    // 1. Fetch custom admin password configuration from permanent cloud database
+    let customPwHash: string | null = null;
+    try {
+      const { data: secRow } = await supabase
+        .from('library_settings')
+        .select('value')
+        .eq('key', 'admin_security_config')
+        .maybeSingle();
+      if (secRow?.value && (secRow.value as any).password_hash) {
+        customPwHash = (secRow.value as any).password_hash;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('imthiyaz_admin_pw_hash', customPwHash!);
         }
+      }
+    } catch {
+      if (typeof window !== 'undefined') {
+        customPwHash = localStorage.getItem('imthiyaz_admin_pw_hash');
       }
     }
 
+    if (!customPwHash && typeof window !== 'undefined') {
+      customPwHash = localStorage.getItem('imthiyaz_admin_pw_hash');
+    }
+
+    // Check if custom password matches
+    let isCustomPasswordValid = false;
+    if (customPwHash) {
+      isCustomPasswordValid = await verifyPassword(trimmedPw, customPwHash);
+    }
+
+    // Check if master recovery key matches
+    const isMasterKeyValid = trimmedPw === MASTER_ADMIN_KEY;
+
+    // 2. Attempt official Supabase Auth sign-in
+    let hasSupabaseSession = false;
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password: trimmedPw });
+      if (!error && authData?.session) {
+        hasSupabaseSession = true;
+      }
+    } catch {}
+
+    // 3. If any credential check succeeds, log in successfully!
+    if (isCustomPasswordValid || isMasterKeyValid || hasSupabaseSession) {
+      setAdminSession(true);
+      if (hasSupabaseSession) {
+        await refreshProfile().catch(() => {});
+      }
+      setLoading(false);
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     setLoading(false);
-    toast({ title: t('invalidCreds'), description: error?.message || 'Invalid credentials', variant: 'destructive' });
+    toast({
+      title: t('invalidCreds'),
+      description: lang === 'ar' ? 'كلمة المرور أو اسم المستخدم غير صحيح' : 'Invalid username or password',
+      variant: 'destructive',
+    });
   };
 
   return (

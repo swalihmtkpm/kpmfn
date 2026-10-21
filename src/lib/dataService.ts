@@ -203,6 +203,23 @@ export function convertDriveUrl(url: string | null | undefined, type: 'image' | 
   return trimmed;
 }
 
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function isUUID(val?: string | null): boolean {
+  return typeof val === 'string' && UUID_REGEX.test(val);
+}
+
 const STORAGE_KEYS = {
   BOOKS: 'imthiyaz_books_v3',
   STUDENTS: 'imthiyaz_students_v3',
@@ -454,86 +471,119 @@ class DataService {
     if (this.isSyncing || typeof window === 'undefined') return;
     this.isSyncing = true;
     try {
-      // 1. Synchronize persistent cloud settings and backups from library_settings
+      // 1. Fetch library_settings rows for global configurations & snapshots
       const { data: settingsData } = await supabase.from('library_settings').select('*');
+      const settingsMap = new Map<string, any>();
       if (settingsData && settingsData.length > 0) {
         for (const row of settingsData) {
-          if (row.key === 'library_books_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.BOOKS, row.value);
-          }
-          if (row.key === 'library_students_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.STUDENTS, row.value);
-          }
-          if (row.key === 'library_banners_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.BANNERS, row.value);
-          }
-          if (row.key === 'library_records_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.RECORDS, row.value);
-          }
-          if (row.key === 'library_requests_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.REQUESTS, row.value);
-          }
-          if (row.key === 'library_reading_records_v3' && Array.isArray(row.value) && row.value.length > 0) {
-            this.setItem(STORAGE_KEYS.READING_RECORDS, row.value);
-          }
+          settingsMap.set(row.key, row.value);
           if (row.key === 'library_leaderboard_settings_v3' && row.value) {
             this.setItem(STORAGE_KEYS.LEADERBOARD_SETTINGS, row.value);
           }
-          if (row.key === 'library_leaderboard_snapshots_v3' && Array.isArray(row.value)) {
-            this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, row.value);
+          if (row.key === 'admin_security_config' && row.value?.password_hash) {
+            localStorage.setItem('imthiyaz_admin_pw_hash', row.value.password_hash);
           }
         }
       }
 
-      // 2. Fetch remote categories
+      // 2. Fetch permanent categories table
       const { data: remoteCats } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
       if (remoteCats && remoteCats.length > 0) {
         this.setItem(STORAGE_KEYS.CATEGORIES, remoteCats);
+      } else {
+        const backupCats = settingsMap.get('library_categories_v3');
+        if (Array.isArray(backupCats) && backupCats.length > 0) {
+          this.setItem(STORAGE_KEYS.CATEGORIES, backupCats);
+          for (const c of backupCats) {
+            await supabase.from('categories').upsert({
+              id: isUUID(c.id) ? c.id : undefined,
+              name_ar: c.name_ar,
+              name_en: c.name_en || null,
+              slug: c.slug || null,
+              icon: c.icon || null,
+              sort_order: c.sort_order || 1,
+            }).catch(() => {});
+          }
+        }
       }
       const allCategories = this.getCategories();
       const catMap = new Map(allCategories.map((c) => [c.id, c]));
 
-      // 3. Fetch remote books from the books table if populated
+      // 3. Fetch permanent books table
       const { data: remoteBooks } = await supabase.from('books').select('*');
+      const backupBooks = settingsMap.get('library_books_v3');
       if (remoteBooks && remoteBooks.length > 0) {
-        const currentBooks = this.getBooks();
-        const map = new Map(currentBooks.map((b) => [b.book_code, b]));
-        for (const rb of remoteBooks) {
-          const cat = catMap.get(rb.category_id || '');
-          const existing = map.get(rb.book_code || '') || currentBooks.find((b) => b.id === rb.id);
-          const mapped: Book = {
-            id: rb.id,
-            si_number: rb.si_number || (existing ? existing.si_number : currentBooks.length + 1),
-            book_code: rb.book_code || (existing ? existing.book_code : `KB-${String(currentBooks.length + 1).padStart(3, '0')}`),
-            title_ar: rb.title_ar,
-            title_en: rb.title_en || '',
-            author_ar: (rb as any).author_name_ar || (rb as any).author_ar || existing?.author_ar || '',
-            author_en: (rb as any).author_name_en || (rb as any).author_en || existing?.author_en || '',
-            publisher_ar: (rb as any).publisher_name_ar || (rb as any).publisher_ar || existing?.publisher_ar || '',
-            publisher_en: (rb as any).publisher_name_en || (rb as any).publisher_en || existing?.publisher_en || '',
-            volume: rb.volume || existing?.volume || '1',
-            pages: Number(rb.pages) || existing?.pages || 0,
-            category_id: rb.category_id || existing?.category_id || 'c0000001-0000-0000-0000-000000000001',
-            category_name_ar: cat?.name_ar || existing?.category_name_ar || 'عام',
-            category_name_en: cat?.name_en || existing?.category_name_en || 'General',
-            cover_url: (rb as any).cover_url || rb.cover_path || existing?.cover_url || '',
-            status: ((rb.status as any) || existing?.status || 'available') as BookStatus,
-            average_rating: Number(rb.average_rating) || existing?.average_rating || 5.0,
-            ratings_count: Number(rb.ratings_count) || existing?.ratings_count || 1,
-            description_ar: rb.description_ar || existing?.description_ar || '',
-            description_en: rb.description_en || existing?.description_en || '',
-            created_at: rb.created_at || existing?.created_at || new Date().toISOString(),
-          };
-          map.set(mapped.book_code, mapped);
+        this.mergeRemoteBooks(remoteBooks, catMap);
+      } else if (Array.isArray(backupBooks) && backupBooks.length > 0) {
+        // Auto-seed books table from backup
+        await this.autoMigrateBooksToTable(backupBooks);
+        const { data: refetched } = await supabase.from('books').select('*');
+        if (refetched && refetched.length > 0) {
+          this.mergeRemoteBooks(refetched, catMap);
+        } else {
+          this.setItem(STORAGE_KEYS.BOOKS, backupBooks);
         }
-        this.setItem(STORAGE_KEYS.BOOKS, Array.from(map.values()));
       }
 
-      // 4. Fetch remote advertisements and preserve them
+      // 4. Fetch permanent students table
+      const { data: remoteStudents } = await (supabase as any).from('students').select('*');
+      const backupStudents = settingsMap.get('library_students_v3');
+      if (remoteStudents && remoteStudents.length > 0) {
+        this.setItem(STORAGE_KEYS.STUDENTS, remoteStudents);
+        // Also keep library_students_v3 backup fresh
+        this.syncToCloud('library_students_v3', remoteStudents);
+      } else if (Array.isArray(backupStudents) && backupStudents.length > 0) {
+        // Auto-seed students table from backup
+        await this.autoMigrateStudentsToTable(backupStudents);
+        const { data: refetchedStudents } = await (supabase as any).from('students').select('*');
+        if (refetchedStudents && refetchedStudents.length > 0) {
+          this.setItem(STORAGE_KEYS.STUDENTS, refetchedStudents);
+        } else {
+          this.setItem(STORAGE_KEYS.STUDENTS, backupStudents);
+        }
+      }
+
+      // 5. Fetch permanent borrow_requests table
+      const { data: remoteReqs } = await supabase.from('borrow_requests').select('*').order('created_at', { ascending: false });
+      const backupReqs = settingsMap.get('library_requests_v3');
+      if (remoteReqs && remoteReqs.length > 0) {
+        this.setItem(STORAGE_KEYS.REQUESTS, remoteReqs);
+      } else if (Array.isArray(backupReqs) && backupReqs.length > 0) {
+        this.setItem(STORAGE_KEYS.REQUESTS, backupReqs);
+        for (const req of backupReqs) {
+          await this.syncBorrowRequestDirect(req).catch(() => {});
+        }
+      }
+
+      // 6. Fetch permanent borrow_records table
+      const { data: remoteRecs } = await supabase.from('borrow_records').select('*').order('borrowed_at', { ascending: false });
+      const backupRecs = settingsMap.get('library_records_v3');
+      if (remoteRecs && remoteRecs.length > 0) {
+        this.setItem(STORAGE_KEYS.RECORDS, remoteRecs);
+      } else if (Array.isArray(backupRecs) && backupRecs.length > 0) {
+        this.setItem(STORAGE_KEYS.RECORDS, backupRecs);
+        for (const rec of backupRecs) {
+          await this.syncBorrowRecordDirect(rec).catch(() => {});
+        }
+      }
+
+      // 7. Fetch permanent reading_records table
+      const { data: remoteReadings } = await (supabase as any).from('reading_records').select('*').order('awarded_at', { ascending: false });
+      const backupReadings = settingsMap.get('library_reading_records_v3');
+      if (remoteReadings && remoteReadings.length > 0) {
+        this.setItem(STORAGE_KEYS.READING_RECORDS, remoteReadings);
+      } else if (Array.isArray(backupReadings) && backupReadings.length > 0) {
+        this.setItem(STORAGE_KEYS.READING_RECORDS, backupReadings);
+        for (const r of backupReadings) {
+          await this.syncReadingRecordDirect(r).catch(() => {});
+        }
+      }
+
+      // 8. Fetch permanent advertisements table
       const { data: remoteAds } = await supabase.from('advertisements').select('*').order('sort_order', { ascending: true });
+      const backupBanners = settingsMap.get('library_banners_v3');
       if (remoteAds && remoteAds.length > 0) {
-        const currentBanners = this.getBanners();
-        const bMap = new Map(currentBanners.map((b) => [b.id, b]));
+        const bMap = new Map(this.getBanners().map((b) => [b.id, b]));
         for (const ad of remoteAds) {
           const mediaUrl = ad.image_path?.startsWith('http')
             ? ad.image_path
@@ -552,36 +602,21 @@ class DataService {
           });
         }
         this.setItem(STORAGE_KEYS.BANNERS, Array.from(bMap.values()));
+      } else if (Array.isArray(backupBanners) && backupBanners.length > 0) {
+        this.setItem(STORAGE_KEYS.BANNERS, backupBanners);
       }
 
-      // 5. Fetch remote students (admin gets full table, public gets directory)
-      try {
-        const { data: remoteStudents } = await (supabase as any).from('students').select('*');
-        if (remoteStudents && remoteStudents.length > 0) {
-          this.setItem(STORAGE_KEYS.STUDENTS, remoteStudents);
-        } else {
-          const { data: dirStudents } = await (supabase as any).from('students_directory').select('*');
-          if (dirStudents && dirStudents.length > 0) {
-            const current = this.getStudents();
-            const map = new Map(current.map((s) => [s.spr_id, s]));
-            const merged = dirStudents.map((ds: any) => ({
-              id: ds.id,
-              name: ds.name,
-              klass: ds.klass,
-              spr_id: ds.spr_id,
-              secret_code: map.get(ds.spr_id)?.secret_code || '',
-              father_name: map.get(ds.spr_id)?.father_name || '',
-              house_name: map.get(ds.spr_id)?.house_name || '',
-              dob: map.get(ds.spr_id)?.dob || '',
-              created_at: ds.created_at || new Date().toISOString(),
-            }));
-            this.setItem(STORAGE_KEYS.STUDENTS, merged);
-          }
-        }
-      } catch {}
+      // 9. Fetch permanent leaderboard_snapshots table
+      const { data: remoteSnaps } = await (supabase as any).from('leaderboard_snapshots').select('*').order('created_at', { ascending: false });
+      const backupSnaps = settingsMap.get('library_leaderboard_snapshots_v3');
+      if (remoteSnaps && remoteSnaps.length > 0) {
+        this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, remoteSnaps);
+      } else if (Array.isArray(backupSnaps) && backupSnaps.length > 0) {
+        this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, backupSnaps);
+      }
 
-      // 6. Fetch remote reviews and ratings
-      const { data: rv } = await supabase.from('reviews').select('*');
+      // 10. Fetch reviews table
+      const { data: rv } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
       if (rv && rv.length > 0) {
         const currentReviews = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
         const map = new Map<string, Review>();
@@ -597,44 +632,97 @@ class DataService {
         });
         this.setItem(STORAGE_KEYS.REVIEWS, Array.from(map.values()));
       }
-
-      // 7. Fetch remote borrow_requests
-      try {
-        const { data: remoteReqs } = await supabase.from('borrow_requests').select('*');
-        if (remoteReqs && remoteReqs.length > 0) {
-          this.setItem(STORAGE_KEYS.REQUESTS, remoteReqs);
-        }
-      } catch {}
-
-      // 8. Fetch remote borrow_records
-      try {
-        const { data: remoteRecs } = await supabase.from('borrow_records').select('*');
-        if (remoteRecs && remoteRecs.length > 0) {
-          this.setItem(STORAGE_KEYS.RECORDS, remoteRecs);
-        }
-      } catch {}
-
-      // 9. Fetch remote reading_records
-      try {
-        const { data: remoteReadings } = await (supabase as any).from('reading_records').select('*');
-        if (remoteReadings && remoteReadings.length > 0) {
-          this.setItem(STORAGE_KEYS.READING_RECORDS, remoteReadings);
-        }
-      } catch {}
-
-      // 10. Fetch remote leaderboard_snapshots
-      try {
-        const { data: remoteSnaps } = await (supabase as any).from('leaderboard_snapshots').select('*');
-        if (remoteSnaps && remoteSnaps.length > 0) {
-          this.setItem(STORAGE_KEYS.LEADERBOARD_SNAPSHOTS, remoteSnaps);
-        }
-      } catch {}
     } catch (e) {
       console.warn('Sync from Supabase notice:', e);
     } finally {
       this.isSyncing = false;
       this.notifyChange();
     }
+  }
+
+  private async autoMigrateStudentsToTable(students: Student[]): Promise<void> {
+    try {
+      const rows = students.map((s) => ({
+        ...(isUUID(s.id) ? { id: s.id } : {}),
+        name: s.name,
+        klass: s.klass || '',
+        spr_id: s.spr_id,
+        secret_code: String(s.secret_code),
+        father_name: s.father_name || null,
+        house_name: s.house_name || null,
+        dob: s.dob || null,
+      }));
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        await (supabase as any).from('students').upsert(chunk, { onConflict: 'spr_id' });
+      }
+    } catch (e) {
+      console.warn('autoMigrateStudentsToTable warning:', e);
+    }
+  }
+
+  private async autoMigrateBooksToTable(books: Book[]): Promise<void> {
+    try {
+      const rows = books.map((b) => ({
+        ...(isUUID(b.id) ? { id: b.id } : {}),
+        book_code: b.book_code,
+        title_ar: b.title_ar,
+        title_en: b.title_en || null,
+        author_name_ar: b.author_ar || null,
+        author_name_en: b.author_en || null,
+        publisher_name_ar: b.publisher_ar || null,
+        publisher_name_en: b.publisher_en || null,
+        volume: b.volume || '1',
+        pages: b.pages || 0,
+        category_id: isUUID(b.category_id) ? b.category_id : null,
+        cover_url: b.cover_url || null,
+        status: b.status || 'available',
+        average_rating: b.average_rating || 5.0,
+        ratings_count: b.ratings_count || 1,
+        description_ar: b.description_ar || null,
+        description_en: b.description_en || null,
+      }));
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        await supabase.from('books').upsert(chunk, { onConflict: 'book_code' });
+      }
+    } catch (e) {
+      console.warn('autoMigrateBooksToTable warning:', e);
+    }
+  }
+
+  private mergeRemoteBooks(remoteBooks: any[], catMap: Map<string, Category>): void {
+    const currentBooks = this.getBooks();
+    const map = new Map(currentBooks.map((b) => [b.book_code, b]));
+    for (const rb of remoteBooks) {
+      const cat = catMap.get(rb.category_id || '');
+      const existing = map.get(rb.book_code || '') || currentBooks.find((b) => b.id === rb.id);
+      const mapped: Book = {
+        id: rb.id,
+        si_number: rb.si_number || (existing ? existing.si_number : currentBooks.length + 1),
+        book_code: rb.book_code || (existing ? existing.book_code : `KB-${String(currentBooks.length + 1).padStart(3, '0')}`),
+        title_ar: rb.title_ar,
+        title_en: rb.title_en || '',
+        author_ar: (rb as any).author_name_ar || (rb as any).author_ar || existing?.author_ar || '',
+        author_en: (rb as any).author_name_en || (rb as any).author_en || existing?.author_en || '',
+        publisher_ar: (rb as any).publisher_name_ar || (rb as any).publisher_ar || existing?.publisher_ar || '',
+        publisher_en: (rb as any).publisher_name_en || (rb as any).publisher_en || existing?.publisher_en || '',
+        volume: rb.volume || existing?.volume || '1',
+        pages: Number(rb.pages) || existing?.pages || 0,
+        category_id: rb.category_id || existing?.category_id || 'cat-1',
+        category_name_ar: cat?.name_ar || existing?.category_name_ar || 'عام',
+        category_name_en: cat?.name_en || existing?.category_name_en || 'General',
+        cover_url: (rb as any).cover_url || rb.cover_path || existing?.cover_url || '',
+        status: ((rb.status as any) || existing?.status || 'available') as BookStatus,
+        average_rating: Number(rb.average_rating) || existing?.average_rating || 5.0,
+        ratings_count: Number(rb.ratings_count) || existing?.ratings_count || 1,
+        description_ar: rb.description_ar || existing?.description_ar || '',
+        description_en: rb.description_en || existing?.description_en || '',
+        created_at: rb.created_at || existing?.created_at || new Date().toISOString(),
+      };
+      map.set(mapped.book_code, mapped);
+    }
+    this.setItem(STORAGE_KEYS.BOOKS, Array.from(map.values()));
   }
 
   // Categories
@@ -696,7 +784,7 @@ class DataService {
   saveBook(book: Partial<Book> & { title_ar: string }): Book {
     const list = this.getBooks();
     if (book.id) {
-      const idx = list.findIndex((b) => b.id === book.id);
+      const idx = list.findIndex((b) => b.id === book.id || (book.book_code && b.book_code === book.book_code));
       if (idx !== -1) {
         const updated = { ...list[idx], ...book };
         list[idx] = updated;
@@ -708,7 +796,7 @@ class DataService {
     }
     const maxSi = list.reduce((max, b) => Math.max(max, b.si_number || 0), 0);
     const newBook: Book = {
-      id: book.id || `bk-${Date.now()}`,
+      id: isUUID(book.id) ? book.id! : generateUUID(),
       si_number: maxSi + 1,
       book_code: book.book_code || `KB-${String(maxSi + 1).padStart(3, '0')}`,
       title_ar: book.title_ar,
@@ -739,12 +827,11 @@ class DataService {
 
   private async syncBookDirectToSupabase(b: Book): Promise<void> {
     try {
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       await supabase
         .from('books')
         .upsert(
           {
-            id: UUID_REGEX.test(b.id) ? b.id : undefined,
+            id: isUUID(b.id) ? b.id : undefined,
             book_code: b.book_code,
             title_ar: b.title_ar,
             title_en: b.title_en || null,
@@ -754,7 +841,7 @@ class DataService {
             publisher_name_en: b.publisher_en || null,
             volume: b.volume || '1',
             pages: b.pages || 0,
-            category_id: UUID_REGEX.test(b.category_id) ? b.category_id : null,
+            category_id: isUUID(b.category_id) ? b.category_id : null,
             cover_url: b.cover_url || null,
             status: b.status || 'available',
             average_rating: b.average_rating || 5.0,
@@ -770,18 +857,16 @@ class DataService {
   }
 
   deleteBook(id: string): void {
-    const list = this.getBooks().filter((b) => b.id !== id);
+    const list = this.getBooks().filter((b) => b.id !== id && b.book_code !== id);
     this.setItem(STORAGE_KEYS.BOOKS, list);
     this.syncToCloud('library_books_v3', list);
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await supabase.from('books').delete().eq('id', id);
-        } else {
-          await supabase.from('books').delete().eq('book_code', id);
         }
+        await supabase.from('books').delete().eq('book_code', id);
       } catch (e) {
         console.warn('deleteBook Supabase notice:', e);
       }
@@ -792,12 +877,13 @@ class DataService {
     const list = this.getBooks();
     let maxSi = list.reduce((max, b) => Math.max(max, b.si_number || 0), 0);
     let added = 0;
+    const newBooks: Book[] = [];
 
     for (const r of rows) {
       if (!r.title_ar?.trim()) continue;
       maxSi++;
-      list.unshift({
-        id: `bk-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      const newBook: Book = {
+        id: isUUID(r.id) ? r.id! : generateUUID(),
         si_number: maxSi,
         book_code: r.book_code || `KB-${String(maxSi).padStart(3, '0')}`,
         title_ar: r.title_ar.trim(),
@@ -818,11 +904,18 @@ class DataService {
         description_ar: r.description_ar?.trim() || '',
         description_en: r.description_en?.trim() || '',
         created_at: new Date().toISOString(),
-      });
+      };
+      list.unshift(newBook);
+      newBooks.push(newBook);
       added++;
     }
     this.setItem(STORAGE_KEYS.BOOKS, list);
     this.syncToCloud('library_books_v3', list);
+
+    if (newBooks.length > 0) {
+      this.autoMigrateBooksToTable(newBooks).catch(() => {});
+    }
+
     return added;
   }
 
@@ -832,13 +925,13 @@ class DataService {
   }
 
   getStudentById(id: string): Student | undefined {
-    return this.getStudents().find((s) => s.id === id);
+    return this.getStudents().find((s) => s.id === id || s.spr_id === id);
   }
 
   saveStudent(student: Partial<Student> & { name: string; klass: string; spr_id: string; secret_code: string }): Student {
     const list = this.getStudents();
     if (student.id) {
-      const idx = list.findIndex((s) => s.id === student.id);
+      const idx = list.findIndex((s) => s.id === student.id || s.spr_id === student.spr_id);
       if (idx !== -1) {
         const updated = { ...list[idx], ...student };
         list[idx] = updated;
@@ -849,7 +942,7 @@ class DataService {
       }
     }
     const newStudent: Student = {
-      id: student.id || `std-${Date.now()}`,
+      id: isUUID(student.id) ? student.id! : generateUUID(),
       name: student.name.trim(),
       klass: student.klass.trim(),
       spr_id: student.spr_id.trim().toUpperCase(),
@@ -868,12 +961,11 @@ class DataService {
 
   private async syncStudentDirectToSupabase(s: Student): Promise<void> {
     try {
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       await (supabase as any)
         .from('students')
         .upsert(
           {
-            id: UUID_REGEX.test(s.id) ? s.id : undefined,
+            id: isUUID(s.id) ? s.id : undefined,
             name: s.name,
             klass: s.klass,
             spr_id: s.spr_id,
@@ -890,18 +982,16 @@ class DataService {
   }
 
   deleteStudent(id: string): void {
-    const list = this.getStudents().filter((s) => s.id !== id);
+    const list = this.getStudents().filter((s) => s.id !== id && s.spr_id !== id);
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v3', list);
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await (supabase as any).from('students').delete().eq('id', id);
-        } else {
-          await (supabase as any).from('students').delete().eq('spr_id', id);
         }
+        await (supabase as any).from('students').delete().eq('spr_id', id);
       } catch (e) {
         console.warn('deleteStudent Supabase notice:', e);
       }
@@ -911,10 +1001,12 @@ class DataService {
   bulkAddStudents(rows: Partial<Student>[]): number {
     const list = this.getStudents();
     let added = 0;
+    const newStudents: Student[] = [];
+
     for (const r of rows) {
       if (!r.name?.trim() || !r.spr_id?.trim() || !r.secret_code?.trim()) continue;
-      list.unshift({
-        id: `std-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      const newStudent: Student = {
+        id: isUUID(r.id) ? r.id! : generateUUID(),
         name: r.name.trim(),
         klass: (r.klass || '').trim(),
         spr_id: r.spr_id.trim().toUpperCase(),
@@ -923,11 +1015,18 @@ class DataService {
         house_name: r.house_name ? String(r.house_name).trim().toUpperCase().replace(/\s+/g, '') : '',
         dob: r.dob ? String(r.dob).trim() : '',
         created_at: new Date().toISOString(),
-      });
+      };
+      list.unshift(newStudent);
+      newStudents.push(newStudent);
       added++;
     }
     this.setItem(STORAGE_KEYS.STUDENTS, list);
     this.syncToCloud('library_students_v3', list);
+
+    if (newStudents.length > 0) {
+      this.autoMigrateStudentsToTable(newStudents).catch(() => {});
+    }
+
     return added;
   }
 
@@ -961,7 +1060,7 @@ class DataService {
       }
     }
     const newBanner: Banner = {
-      id: banner.id || `ban-${Date.now()}`,
+      id: isUUID(banner.id) ? banner.id! : generateUUID(),
       type: banner.type || 'image',
       media_url: banner.media_url.trim(),
       title_ar: banner.title_ar?.trim() || '',
@@ -981,11 +1080,10 @@ class DataService {
 
   private async syncBannerDirectToSupabase(b: Banner): Promise<void> {
     try {
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       await supabase
         .from('advertisements')
         .upsert({
-          id: UUID_REGEX.test(b.id) ? b.id : undefined,
+          id: isUUID(b.id) ? b.id : undefined,
           title_ar: b.title_ar || 'إعلان',
           title_en: b.title_en || null,
           image_path: b.media_url,
@@ -1005,8 +1103,7 @@ class DataService {
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await supabase.from('advertisements').delete().eq('id', id);
         }
       } catch (e) {
@@ -1024,38 +1121,38 @@ class DataService {
     const list = this.getBorrowRequests();
     const newReq: BorrowRequest = {
       ...req,
-      id: `req-${Date.now()}`,
+      id: generateUUID(),
       status: 'pending',
       created_at: new Date().toISOString(),
     };
     list.unshift(newReq);
     this.setItem(STORAGE_KEYS.REQUESTS, list);
     this.syncToCloud('library_requests_v3', list);
-
-    (async () => {
-      try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        await (supabase as any).from('borrow_requests').insert({
-          id: UUID_REGEX.test(newReq.id) ? newReq.id : undefined,
-          book_id: UUID_REGEX.test(newReq.book_id) ? newReq.book_id : undefined,
-          student_id: newReq.student_id || newReq.requester_spr_id,
-          requester_name: newReq.requester_name,
-          requester_type: newReq.requester_type,
-          requester_class: newReq.requester_class,
-          requester_spr_id: newReq.requester_spr_id,
-          requester_phone: newReq.requester_phone,
-          requester_place: newReq.requester_place,
-          requester_address: newReq.requester_address,
-          days_requested: newReq.days_requested,
-          expected_return_date: newReq.expected_return_date,
-          status: newReq.status,
-        });
-      } catch (e) {
-        console.warn('syncBorrowRequestDirect notice:', e);
-      }
-    })();
-
+    this.syncBorrowRequestDirect(newReq).catch(() => {});
     return newReq;
+  }
+
+  private async syncBorrowRequestDirect(req: BorrowRequest): Promise<void> {
+    try {
+      await (supabase as any).from('borrow_requests').upsert({
+        id: isUUID(req.id) ? req.id : undefined,
+        book_id: isUUID(req.book_id) ? req.book_id : undefined,
+        student_id: req.student_id || req.requester_spr_id,
+        requester_name: req.requester_name,
+        requester_type: req.requester_type,
+        requester_class: req.requester_class,
+        requester_spr_id: req.requester_spr_id,
+        requester_phone: req.requester_phone,
+        requester_place: req.requester_place,
+        requester_address: req.requester_address,
+        days_requested: req.days_requested,
+        expected_return_date: req.expected_return_date,
+        status: req.status,
+        returned_at: req.returned_at || null,
+      });
+    } catch (e) {
+      console.warn('syncBorrowRequestDirect notice:', e);
+    }
   }
 
   updateBorrowRequestStatus(id: string, status: BorrowRequest['status']): void {
@@ -1069,12 +1166,16 @@ class DataService {
 
       (async () => {
         try {
-          const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (UUID_REGEX.test(id)) {
+          if (isUUID(id)) {
             await (supabase as any).from('borrow_requests').update({
               status,
               returned_at: status === 'returned' ? new Date().toISOString() : null,
             }).eq('id', id);
+          } else {
+            await (supabase as any).from('borrow_requests').update({
+              status,
+              returned_at: status === 'returned' ? new Date().toISOString() : null,
+            }).match({ requester_name: item.requester_name, book_title: item.book_title });
           }
         } catch (e) {
           console.warn('updateBorrowRequestDirect notice:', e);
@@ -1085,7 +1186,7 @@ class DataService {
       if (status === 'approved') {
         const records = this.getBorrowRecords();
         const newRecord: BorrowRecord = {
-          id: `rec-${Date.now()}`,
+          id: generateUUID(),
           book_id: item.book_id,
           book_title: item.book_title,
           student_id: item.student_id,
@@ -1097,27 +1198,10 @@ class DataService {
         records.unshift(newRecord);
         this.setItem(STORAGE_KEYS.RECORDS, records);
         this.syncToCloud('library_records_v3', records);
-
-        (async () => {
-          try {
-            const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            await (supabase as any).from('borrow_records').insert({
-              id: UUID_REGEX.test(newRecord.id) ? newRecord.id : undefined,
-              book_id: UUID_REGEX.test(newRecord.book_id) ? newRecord.book_id : undefined,
-              student_id: newRecord.student_id,
-              borrower_name: newRecord.borrower_name,
-              book_title: newRecord.book_title,
-              borrowed_at: newRecord.borrowed_at,
-              due_at: newRecord.due_at,
-              status: 'active',
-            });
-          } catch (e) {
-            console.warn('syncBorrowRecordDirect notice:', e);
-          }
-        })();
+        this.syncBorrowRecordDirect(newRecord).catch(() => {});
       } else if (status === 'returned') {
         const records = this.getBorrowRecords();
-        const activeRec = records.find((r) => r.book_id === item.book_id && r.borrower_name === item.requester_name && r.status === 'active');
+        const activeRec = records.find((r) => (r.book_id === item.book_id || r.book_title === item.book_title) && r.borrower_name === item.requester_name && r.status === 'active');
         if (activeRec) {
           activeRec.status = 'returned';
           activeRec.returned_at = new Date().toISOString();
@@ -1126,12 +1210,16 @@ class DataService {
 
           (async () => {
             try {
-              const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-              if (UUID_REGEX.test(activeRec.id)) {
+              if (isUUID(activeRec.id)) {
                 await supabase.from('borrow_records').update({
                   status: 'returned',
                   returned_at: activeRec.returned_at,
                 }).eq('id', activeRec.id);
+              } else {
+                await supabase.from('borrow_records').update({
+                  status: 'returned',
+                  returned_at: activeRec.returned_at,
+                }).match({ borrower_name: activeRec.borrower_name, book_title: activeRec.book_title });
               }
             } catch (e) {
               console.warn('updateBorrowRecordDirect notice:', e);
@@ -1139,6 +1227,24 @@ class DataService {
           })();
         }
       }
+    }
+  }
+
+  private async syncBorrowRecordDirect(rec: BorrowRecord): Promise<void> {
+    try {
+      await (supabase as any).from('borrow_records').upsert({
+        id: isUUID(rec.id) ? rec.id : undefined,
+        book_id: isUUID(rec.book_id) ? rec.book_id : undefined,
+        student_id: rec.student_id,
+        borrower_name: rec.borrower_name,
+        book_title: rec.book_title,
+        borrowed_at: rec.borrowed_at,
+        due_at: rec.due_at,
+        returned_at: rec.returned_at || null,
+        status: rec.status,
+      });
+    } catch (e) {
+      console.warn('syncBorrowRecordDirect notice:', e);
     }
   }
 
@@ -1166,6 +1272,17 @@ class DataService {
     if (!record) return false;
     record.due_at = dueAt;
     this.setItem(STORAGE_KEYS.RECORDS, records);
+    this.syncToCloud('library_records_v3', records);
+
+    (async () => {
+      try {
+        if (isUUID(id)) {
+          await supabase.from('borrow_records').update({ due_at: dueAt }).eq('id', id);
+        }
+      } catch (e) {
+        console.warn('updateRecordDueDate notice:', e);
+      }
+    })();
     return true;
   }
 
@@ -1176,6 +1293,20 @@ class DataService {
     record.status = 'returned';
     record.returned_at = new Date().toISOString();
     this.setItem(STORAGE_KEYS.RECORDS, records);
+    this.syncToCloud('library_records_v3', records);
+
+    (async () => {
+      try {
+        if (isUUID(id)) {
+          await supabase.from('borrow_records').update({
+            status: 'returned',
+            returned_at: record.returned_at,
+          }).eq('id', id);
+        }
+      } catch (e) {
+        console.warn('markRecordReturned notice:', e);
+      }
+    })();
     return true;
   }
 
@@ -1361,6 +1492,17 @@ class DataService {
     const list = this.getBorrowRequests().filter((r) => !set.has(r.id));
     this.setItem(STORAGE_KEYS.REQUESTS, list);
     this.syncToCloud('library_requests_v3', list);
+
+    (async () => {
+      try {
+        const uuidIds = ids.filter((id) => isUUID(id));
+        if (uuidIds.length > 0) {
+          await (supabase as any).from('borrow_requests').delete().in('id', uuidIds);
+        }
+      } catch (e) {
+        console.warn('bulkDeleteBorrowRequests notice:', e);
+      }
+    })();
   }
 
   bulkDeleteBorrowRecords(ids: string[]): void {
@@ -1368,13 +1510,24 @@ class DataService {
     const list = this.getBorrowRecords().filter((r) => !set.has(r.id));
     this.setItem(STORAGE_KEYS.RECORDS, list);
     this.syncToCloud('library_records_v3', list);
+
+    (async () => {
+      try {
+        const uuidIds = ids.filter((id) => isUUID(id));
+        if (uuidIds.length > 0) {
+          await (supabase as any).from('borrow_records').delete().in('id', uuidIds);
+        }
+      } catch (e) {
+        console.warn('bulkDeleteBorrowRecords notice:', e);
+      }
+    })();
   }
 
   // Category Management CRUD
   addCategory(cat: { name_ar: string; name_en?: string; slug?: string; icon?: string; color?: string }): Category {
     const list = this.getCategories();
     const newCat: Category = {
-      id: `cat-${Date.now()}`,
+      id: generateUUID(),
       name_ar: cat.name_ar.trim(),
       name_en: cat.name_en?.trim() || cat.name_ar.trim(),
       slug: cat.slug?.trim() || `cat-${Date.now()}`,
@@ -1389,6 +1542,7 @@ class DataService {
     (async () => {
       try {
         await supabase.from('categories').insert({
+          id: newCat.id,
           name_ar: newCat.name_ar,
           name_en: newCat.name_en,
           slug: newCat.slug,
@@ -1413,14 +1567,20 @@ class DataService {
 
       (async () => {
         try {
-          const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (UUID_REGEX.test(id)) {
+          if (isUUID(id)) {
             await supabase.from('categories').update({
               name_ar: updated.name_ar,
               name_en: updated.name_en,
               slug: updated.slug,
               icon: updated.icon,
             }).eq('id', id);
+          } else {
+            await supabase.from('categories').update({
+              name_ar: updated.name_ar,
+              name_en: updated.name_en,
+              slug: updated.slug,
+              icon: updated.icon,
+            }).eq('name_ar', updated.name_ar);
           }
         } catch (e) {
           console.warn('updateCategory Supabase notice:', e);
@@ -1432,15 +1592,21 @@ class DataService {
   }
 
   deleteCategory(id: string): void {
+    const target = this.getCategories().find((c) => c.id === id);
     const list = this.getCategories().filter((c) => c.id !== id);
     this.setItem(STORAGE_KEYS.CATEGORIES, list);
     this.syncToCloud('library_categories_v3', list);
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await supabase.from('categories').delete().eq('id', id);
+        }
+        if (target) {
+          await supabase.from('categories').delete().eq('name_ar', target.name_ar);
+          if (target.slug) {
+            await supabase.from('categories').delete().eq('slug', target.slug);
+          }
         }
       } catch (e) {
         console.warn('deleteCategory Supabase notice:', e);
@@ -1471,6 +1637,7 @@ class DataService {
   }
 
   saveReadingRecord(record: {
+    id?: string;
     borrow_record_id?: string;
     student_id?: string;
     student_name: string;
@@ -1513,6 +1680,7 @@ class DataService {
       savedRecord = {
         ...list[existingIdx],
         ...record,
+        id: isUUID(list[existingIdx].id) ? list[existingIdx].id : (isUUID(record.id) ? record.id! : generateUUID()),
         book_pages: totalBookPages,
         pages_read: pages,
         points_awarded: points,
@@ -1521,7 +1689,7 @@ class DataService {
       list[existingIdx] = savedRecord;
     } else {
       savedRecord = {
-        id: `read-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        id: isUUID(record.id) ? record.id! : generateUUID(),
         ...record,
         book_pages: totalBookPages,
         pages_read: pages,
@@ -1533,30 +1701,30 @@ class DataService {
 
     this.setItem(STORAGE_KEYS.READING_RECORDS, list);
     this.syncToCloud('library_reading_records_v3', list);
-
-    (async () => {
-      try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        await (supabase as any).from('reading_records').upsert({
-          id: UUID_REGEX.test(savedRecord.id) ? savedRecord.id : undefined,
-          student_id: savedRecord.student_id || savedRecord.student_spr_id || savedRecord.student_name,
-          student_name: savedRecord.student_name,
-          student_spr_id: savedRecord.student_spr_id || null,
-          book_id: savedRecord.book_id,
-          book_title: savedRecord.book_title,
-          book_pages: savedRecord.book_pages,
-          reading_status: savedRecord.reading_status,
-          pages_read: savedRecord.pages_read,
-          points_awarded: savedRecord.points_awarded,
-          awarded_at: savedRecord.awarded_at,
-          notes: savedRecord.notes || null,
-        });
-      } catch (e) {
-        console.warn('syncReadingRecordDirect notice:', e);
-      }
-    })();
+    this.syncReadingRecordDirect(savedRecord).catch(() => {});
 
     return savedRecord;
+  }
+
+  async syncReadingRecordDirect(savedRecord: ReadingRecord): Promise<void> {
+    try {
+      await (supabase as any).from('reading_records').upsert({
+        id: isUUID(savedRecord.id) ? savedRecord.id : undefined,
+        student_id: savedRecord.student_id || savedRecord.student_spr_id || savedRecord.student_name,
+        student_name: savedRecord.student_name,
+        student_spr_id: savedRecord.student_spr_id || null,
+        book_id: savedRecord.book_id,
+        book_title: savedRecord.book_title,
+        book_pages: savedRecord.book_pages,
+        reading_status: savedRecord.reading_status,
+        pages_read: savedRecord.pages_read,
+        points_awarded: savedRecord.points_awarded,
+        awarded_at: savedRecord.awarded_at,
+        notes: savedRecord.notes || null,
+      });
+    } catch (e) {
+      console.warn('syncReadingRecordDirect notice:', e);
+    }
   }
 
   deleteReadingRecord(id: string): void {
@@ -1566,8 +1734,7 @@ class DataService {
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await (supabase as any).from('reading_records').delete().eq('id', id);
         }
       } catch (e) {
@@ -1704,7 +1871,7 @@ class DataService {
     const liveEntries = this.getLeaderboard();
     const title = name.trim() || `تحدي القراءة - ${new Date().toLocaleDateString('ar-SA')}`;
     const snapshot: LeaderboardSnapshot = {
-      id: `snap-${Date.now()}`,
+      id: generateUUID(),
       name: title,
       title: title,
       created_at: new Date().toISOString(),
@@ -1717,9 +1884,8 @@ class DataService {
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         await (supabase as any).from('leaderboard_snapshots').insert({
-          id: UUID_REGEX.test(snapshot.id) ? snapshot.id : undefined,
+          id: snapshot.id,
           name: snapshot.name,
           entries: snapshot.entries,
         });
@@ -1738,8 +1904,7 @@ class DataService {
 
     (async () => {
       try {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (UUID_REGEX.test(id)) {
+        if (isUUID(id)) {
           await (supabase as any).from('leaderboard_snapshots').delete().eq('id', id);
         }
       } catch (e) {
@@ -1789,14 +1954,40 @@ class DataService {
     this.setItem(STORAGE_KEYS.RECORDS, records);
     this.syncToCloud('library_records_v3', records);
 
+    (async () => {
+      try {
+        if (isUUID(record.id)) {
+          await supabase.from('borrow_records').update({
+            status: 'returned',
+            returned_at: record.returned_at,
+          }).eq('id', record.id);
+        }
+      } catch (e) {
+        console.warn('returnOverdueBook record update notice:', e);
+      }
+    })();
+
     // Also update matching borrow request if pending/approved
     const requests = this.getBorrowRequests();
-    const req = requests.find((rq) => rq.book_id === record.book_id && rq.requester_name === record.borrower_name && rq.status === 'approved');
+    const req = requests.find((rq) => (rq.book_id === record.book_id || rq.book_title === record.book_title) && (rq.requester_name === record.borrower_name || (record.student_spr_id && rq.requester_spr_id === record.student_spr_id)) && (rq.status === 'approved' || rq.status === 'pending'));
     if (req) {
       req.status = 'returned';
       req.returned_at = new Date().toISOString();
       this.setItem(STORAGE_KEYS.REQUESTS, requests);
       this.syncToCloud('library_requests_v3', requests);
+
+      (async () => {
+        try {
+          if (isUUID(req.id)) {
+            await (supabase as any).from('borrow_requests').update({
+              status: 'returned',
+              returned_at: req.returned_at,
+            }).eq('id', req.id);
+          }
+        } catch (e) {
+          console.warn('returnOverdueBook request update notice:', e);
+        }
+      })();
     }
 
     const book = this.getBookById(record.book_id);
@@ -1808,13 +1999,13 @@ class DataService {
       pagesRead = customPages && customPages > 0 ? customPages : 0;
     }
 
-    const student = this.getStudents().find((s) => s.id === record.student_id || s.name === record.borrower_name);
+    const student = this.getStudents().find((s) => s.id === record.student_id || s.name === record.borrower_name || (record.student_spr_id && s.spr_id === record.student_spr_id));
 
     this.saveReadingRecord({
       borrow_record_id: record.id,
       student_id: record.student_id || student?.id,
       student_name: record.borrower_name,
-      student_spr_id: student?.spr_id,
+      student_spr_id: student?.spr_id || record.student_spr_id,
       book_id: record.book_id,
       book_title: record.book_title,
       book_pages: totalPages,
@@ -1837,19 +2028,19 @@ class DataService {
     const list = this.getItem<Review[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
     const newRev: Review = {
       ...review,
-      id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: generateUUID(),
       created_at: new Date().toISOString(),
     };
     list.unshift(newRev);
     this.setItem(STORAGE_KEYS.REVIEWS, list);
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(newRev.book_id)) {
+    if (isUUID(newRev.book_id)) {
       (async () => {
         try {
           await supabase
             .from('reviews')
             .insert({
+              id: newRev.id,
               book_id: newRev.book_id,
               content: newRev.content,
               reviewer_name: newRev.reviewer_name,
@@ -1864,22 +2055,23 @@ class DataService {
 
   addRating(bookId: string, stars: number, raterName: string): { average_rating: number; ratings_count: number } {
     const ratings = this.getItem<RatingRecord[]>(STORAGE_KEYS.RATINGS, []);
-    ratings.unshift({
-      id: `rat-${Date.now()}`,
+    const newRat: RatingRecord = {
+      id: generateUUID(),
       book_id: bookId,
       stars,
       rater_name: raterName.trim(),
       created_at: new Date().toISOString(),
-    });
+    };
+    ratings.unshift(newRat);
     this.setItem(STORAGE_KEYS.RATINGS, ratings);
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(bookId)) {
+    if (isUUID(bookId)) {
       (async () => {
         try {
           await supabase
             .from('ratings')
             .insert({
+              id: newRat.id,
               book_id: bookId,
               stars,
               rater_name: raterName.trim(),
